@@ -21,7 +21,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	e := app.NewEditorApp()
+	// Récupération de l'argument de chemin initial s'il a été fourni en paramètre
+	initialPath := ""
+	if flag.NArg() > 0 {
+		initialPath = flag.Arg(0)
+	}
+
+	e := app.NewEditorApp(initialPath)
 
 	// Sécurité : Restaurer le terminal si l'application crash
 	defer func() {

@@ -30,7 +30,11 @@ func (e *EditorApp) refreshFileList() {
 
 			e.PathBar.SetText(fmt.Sprintf(" Path: %s", utils.ShortenPath(e.CurrentDir)))
 			e.CurrentFiles = files
-			for _, f := range files {
+
+			// Index de sélection initialisé à 0 ("..")
+			selectedIndex := 0
+
+			for i, f := range files {
 				var displayName string
 				if f.IsDir {
 					displayName = "[#ff8c00]" + f.Name + "/"
@@ -38,6 +42,19 @@ func (e *EditorApp) refreshFileList() {
 					displayName = f.Name
 				}
 				e.FileList.AddItem(displayName, "", 0, nil)
+
+				// Si un fichier initial est spécifié et correspond à l'élément courant,
+				// on enregistre son index de liste (i + 1 car l'index 0 est "..")
+				if e.initialFileSelected != "" && f.Name == e.initialFileSelected {
+					selectedIndex = i + 1
+				}
+			}
+
+			// Si un fichier a été identifié pour sélection, on applique le changement de focus
+			if selectedIndex > 0 {
+				e.FileList.SetCurrentItem(selectedIndex)
+				// On vide le champ pour éviter de repositionner lors des prochains rafraîchissements
+				e.initialFileSelected = ""
 			}
 		})
 	}()

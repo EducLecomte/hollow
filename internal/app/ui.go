@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"os" // Utilisé pour os.Stat afin de vérifier si le chemin est un fichier ou un répertoire
 	"path/filepath"
 	"strings"
 	"time"
@@ -47,28 +48,66 @@ type EditorApp struct {
 
 	// Gestion de l'asynchronisme
 	previewCancel context.CancelFunc
+
+	// Chemin du fichier qui doit être sélectionné initialement dans l'explorateur
+	initialFileSelected string
 }
 
 // NewEditorApp initialise une nouvelle instance de l'application Hollow.
-// Par défaut, elle démarre sur le système de fichiers local dans le répertoire courant.
-func NewEditorApp() *EditorApp {
+// Elle accepte un paramètre initialPath qui permet de démarrer l'application directement
+// sur un dossier spécifique ou d'ouvrir un fichier dès le lancement.
+func NewEditorApp(initialPath string) *EditorApp {
+	// Définition du système de fichiers local par défaut
 	localFS := &vfs.LocalFS{}
+	
+	// Résolution du répertoire de travail courant (répertoire de base par défaut)
 	wd, err := filepath.Abs(".")
 	if err != nil {
 		wd = "/"
 	}
 
+	var fileToOpen string
+	var fileSelected string
+
+	// Si un chemin initial a été fourni en paramètre de lancement
+	if initialPath != "" {
+		// Résolution de son chemin absolu
+		absPath, err := filepath.Abs(initialPath)
+		if err == nil {
+			info, err := os.Stat(absPath)
+			if err == nil {
+				if info.IsDir() {
+					// Si c'est un dossier, on met à jour le répertoire de travail courant
+					wd = absPath
+				} else {
+					// Si c'est un fichier existant, on se place dans son répertoire parent
+					// et on enregistre son chemin pour l'ouvrir immédiatement
+					wd = filepath.Dir(absPath)
+					fileToOpen = absPath
+					fileSelected = filepath.Base(absPath)
+				}
+			} else {
+				// Si le fichier/dossier n'existe pas, on suppose que l'utilisateur souhaite créer/éditer un nouveau fichier.
+				// On se place donc dans le dossier parent présumé et on enregistre le chemin du fichier.
+				wd = filepath.Dir(absPath)
+				fileToOpen = absPath
+				fileSelected = filepath.Base(absPath)
+			}
+		}
+	}
+
 	e := &EditorApp{
-		App:         tview.NewApplication(),
-		PathBar:     tview.NewTextView(),
-		FileList:    tview.NewList(),
-		FileSizeBox: tview.NewTextView(),
-		Viewer:      tview.NewTextView(),
-		Status:      tview.NewTextView(),
-		FavList:     tview.NewList(),
-		Pages:       tview.NewPages(),
-		CurrentDir:  wd,
-		FileSystem:  localFS,
+		App:                 tview.NewApplication(),
+		PathBar:             tview.NewTextView(),
+		FileList:            tview.NewList(),
+		FileSizeBox:         tview.NewTextView(),
+		Viewer:              tview.NewTextView(),
+		Status:              tview.NewTextView(),
+		FavList:             tview.NewList(),
+		Pages:               tview.NewPages(),
+		CurrentDir:          wd,
+		FileSystem:          localFS,
+		initialFileSelected: fileSelected, // Mémorise le nom du fichier pour le sélectionner dans la liste
 	}
 
 	e.loadFavorites()
@@ -76,6 +115,12 @@ func NewEditorApp() *EditorApp {
 	e.setupFavHandlers()
 	e.setupHandlers()
 	e.refreshFileList()
+
+	// Si un fichier doit être ouvert au lancement, on appelle la fonction d'ouverture de fichier
+	if fileToOpen != "" {
+		e.openFile(fileToOpen, false)
+	}
+
 	return e
 }
 
