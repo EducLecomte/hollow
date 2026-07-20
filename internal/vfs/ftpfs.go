@@ -2,6 +2,7 @@ package vfs
 
 import (
 	"context"
+	"crypto/tls" // Importé pour configurer le chiffrement TLS dans les connexions FTPS
 	"fmt"
 	"io"
 	"os"
@@ -45,20 +46,35 @@ func (r *cancelableReadCloser) Close() error {
 	return r.closer.Close()
 }
 
-// FtpFS implémente VFS pour le protocole FTP avec support de reconnexion.
+// FtpFS implémente VFS pour le protocole FTP / FTPS avec support de reconnexion.
 type FtpFS struct {
 	conn     *ftp.ServerConn
 	host     string
 	port     int
 	user     string
 	password string
+	useTLS   bool         // Indique si la connexion doit utiliser le chiffrement TLS (FTPS)
 	OnStatus func(string) // Callback pour notifier l'UI des événements de connexion
 }
 
-// NewFtpFS crée une nouvelle connexion FTP et retourne une instance de FtpFS
-func NewFtpFS(host string, port int, user, password string) (*FtpFS, error) {
+// NewFtpFS crée une nouvelle connexion FTP/FTPS et retourne une instance de FtpFS.
+// Si useTLS est vrai, la connexion sera initialisée avec un chiffrement TLS (FTPS).
+func NewFtpFS(host string, port int, user, password string, useTLS bool) (*FtpFS, error) {
 	addr := fmt.Sprintf("%s:%d", host, port)
-	conn, err := ftp.Dial(addr, ftp.DialWithTimeout(5*time.Second))
+	
+	// Définition des options par défaut (timeout de connexion)
+	opts := []ftp.DialOption{
+		ftp.DialWithTimeout(5 * time.Second),
+	}
+	
+	// Si le chiffrement TLS est demandé, on l'ajoute aux options de connexion
+	if useTLS {
+		opts = append(opts, ftp.DialWithTLS(&tls.Config{
+			InsecureSkipVerify: true, // Permet de se connecter même si le certificat n'est pas signé par une autorité publique
+		}))
+	}
+
+	conn, err := ftp.Dial(addr, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("erreur de connexion: %v", err)
 	}
@@ -75,6 +91,7 @@ func NewFtpFS(host string, port int, user, password string) (*FtpFS, error) {
 		port:     port,
 		user:     user,
 		password: password,
+		useTLS:   useTLS,
 	}, nil
 }
 
@@ -85,7 +102,7 @@ func (f *FtpFS) ensureConn(ctx context.Context) error {
 		return ctx.Err()
 	default:
 	}
-	// Test rapide avec NoOp
+	// Test rapide de la connexion avec une commande NoOp
 	err := f.conn.NoOp()
 	if err == nil {
 		return nil
@@ -95,9 +112,18 @@ func (f *FtpFS) ensureConn(ctx context.Context) error {
 		f.OnStatus("[yellow]Reconnexion FTP en cours...")
 	}
 
-	// Tentative de reconnexion
+	// Tentative de reconnexion avec les mêmes paramètres
 	addr := fmt.Sprintf("%s:%d", f.host, f.port)
-	conn, err := ftp.Dial(addr, ftp.DialWithTimeout(5*time.Second))
+	opts := []ftp.DialOption{
+		ftp.DialWithTimeout(5 * time.Second),
+	}
+	if f.useTLS {
+		opts = append(opts, ftp.DialWithTLS(&tls.Config{
+			InsecureSkipVerify: true,
+		}))
+	}
+
+	conn, err := ftp.Dial(addr, opts...)
 	if err != nil {
 		return fmt.Errorf("reconnexion échouée: %v", err)
 	}

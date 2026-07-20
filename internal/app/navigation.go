@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"sort" // Importé pour trier la liste de fichiers (dossiers d'abord, puis fichiers)
 	"strings"
 
 	"github.com/EducLecomte/go_hollow_project/internal/utils"
@@ -27,6 +28,17 @@ func (e *EditorApp) refreshFileList() {
 				e.updateStatus(fmt.Sprintf("[red]Erreur listage: %v", err))
 				return
 			}
+
+			// Tri des entrées : dossiers d'abord, puis fichiers par ordre alphabétique (insensible à la casse)
+			sort.Slice(files, func(i, j int) bool {
+				if files[i].IsDir && !files[j].IsDir {
+					return true
+				}
+				if !files[i].IsDir && files[j].IsDir {
+					return false
+				}
+				return strings.ToLower(files[i].Name) < strings.ToLower(files[j].Name)
+			})
 
 			e.PathBar.SetText(fmt.Sprintf(" Path: %s", utils.ShortenPath(e.CurrentDir)))
 			e.CurrentFiles = files

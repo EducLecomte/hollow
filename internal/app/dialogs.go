@@ -168,19 +168,36 @@ func (e *EditorApp) showNewDirDialog() {
 	})
 }
 
-// showFTPDialog affiche le formulaire de connexion pour accéder à un serveur distant via le protocole FTP.
+// showFTPDialog affiche le formulaire de connexion unifié pour accéder à un serveur distant via FTP, FTPS ou SFTP.
 func (e *EditorApp) showFTPDialog() {
 	form := tview.NewForm()
+	
+	// Menu déroulant pour le choix du protocole
+	form.AddDropDown("Protocole", []string{"FTP", "FTPS", "SFTP"}, 0, func(option string, optionIndex int) {
+		// Sécurité : Le callback est appelé immédiatement lors de la création de la dropdown.
+		// On s'assure donc que le champ Port (index 2) a bien été ajouté au formulaire avant de le modifier.
+		if form.GetFormItemCount() > 2 {
+			portField := form.GetFormItem(2).(*tview.InputField)
+			if option == "SFTP" {
+				portField.SetText("22")
+			} else {
+				portField.SetText("21")
+			}
+		}
+	})
+	
 	form.AddInputField("Hôte", "", 30, nil, nil)
 	form.AddInputField("Port", "21", 6, nil, nil)
 	form.AddInputField("Utilisateur", "", 30, nil, nil)
 	form.AddPasswordField("Mot de passe", "", 30, '*', nil)
 
 	form.AddButton("Se connecter", func() {
-		host := form.GetFormItem(0).(*tview.InputField).GetText()
-		portStr := form.GetFormItem(1).(*tview.InputField).GetText()
-		user := form.GetFormItem(2).(*tview.InputField).GetText()
-		pass := form.GetFormItem(3).(*tview.InputField).GetText()
+		// Extraction des valeurs saisies dans le formulaire unifié
+		_, proto := form.GetFormItem(0).(*tview.DropDown).GetCurrentOption()
+		host := form.GetFormItem(1).(*tview.InputField).GetText()
+		portStr := form.GetFormItem(2).(*tview.InputField).GetText()
+		user := form.GetFormItem(3).(*tview.InputField).GetText()
+		pass := form.GetFormItem(4).(*tview.InputField).GetText()
 
 		if host == "" {
 			e.updateStatusTemp("[red]L'hôte est obligatoire")
@@ -190,23 +207,29 @@ func (e *EditorApp) showFTPDialog() {
 		var port int
 		fmt.Sscanf(portStr, "%d", &port)
 		if port == 0 {
-			port = 21
+			if proto == "SFTP" {
+				port = 22
+			} else {
+				port = 21
+			}
 		}
 
+		// Fermeture de la fenêtre de configuration de connexion
 		e.Pages.RemovePage("ftp")
 
-		// Affichage de la modale de chargement pendant la connexion
+		// Affichage de la boîte de dialogue de chargement
 		_, cancel := context.WithCancel(context.Background())
 		e.showLoadingDialog("Chargement", fmt.Sprintf("Connexion à %s...", host), cancel)
 
+		// Lancement asynchrone de la connexion réseau
 		go func() {
-			err := e.connectFTP(host, port, user, pass)
+			err := e.connectRemote(proto, host, port, user, pass)
 			e.App.QueueUpdateDraw(func() {
 				e.Pages.RemovePage("loading")
 				if err != nil {
-					e.updateStatusTemp(fmt.Sprintf("[red]Erreur FTP: %v", err))
+					e.updateStatusTemp(fmt.Sprintf("[red]Erreur %s: %v", proto, err))
 				} else {
-					e.updateStatusTemp(fmt.Sprintf("[green]Connecté avec succès à %s", host))
+					e.updateStatusTemp(fmt.Sprintf("[green]Connecté avec succès à %s via %s", host, proto))
 				}
 			})
 		}()
@@ -226,8 +249,9 @@ func (e *EditorApp) showFTPDialog() {
 		return event
 	})
 
-	form.SetBorder(true).SetTitle(" Connexion FTP ").SetTitleAlign(tview.AlignCenter)
-	e.showCenteredDialog("ftp", form, 50, 15)
+	form.SetBorder(true).SetTitle(" Connexion Réseau ").SetTitleAlign(tview.AlignCenter)
+	// Augmentation légère de la hauteur de la boîte de dialogue pour accueillir le nouveau champ Protocole (hauteur 17 au lieu de 15)
+	e.showCenteredDialog("ftp", form, 50, 17)
 }
 
 // showLoadingDialog affiche une modale d'attente pour les opérations longues avec option d'annulation.

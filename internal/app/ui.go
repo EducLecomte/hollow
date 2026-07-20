@@ -327,25 +327,50 @@ func (e *EditorApp) updateStatusTemp(msg string) {
 	}()
 }
 
-// connectFTP initialise une connexion à un serveur distant et bascule le système de fichiers de l'application.
-func (e *EditorApp) connectFTP(host string, port int, user, pass string) error {
-	ftpFS, err := vfs.NewFtpFS(host, port, user, pass)
+// connectRemote initialise une connexion à un serveur distant (FTP, FTPS ou SFTP) et bascule le système de fichiers de l'application.
+func (e *EditorApp) connectRemote(proto string, host string, port int, user, pass string) error {
+	var remoteFS vfs.VFS
+	var err error
+
+	// Routage vers le bon constructeur en fonction du protocole sélectionné
+	switch proto {
+	case "FTP":
+		// Connexion FTP classique (sans TLS)
+		remoteFS, err = vfs.NewFtpFS(host, port, user, pass, false)
+	case "FTPS":
+		// Connexion FTP sécurisée (avec TLS)
+		remoteFS, err = vfs.NewFtpFS(host, port, user, pass, true)
+	case "SFTP":
+		// Connexion SFTP via le protocole SSH
+		remoteFS, err = vfs.NewSftpFS(host, port, user, pass)
+	default:
+		return fmt.Errorf("protocole inconnu: %s", proto)
+	}
+
 	if err != nil {
 		return err
 	}
 
-	// Configuration du callback de statut pour les reconnexions
-	ftpFS.OnStatus = func(msg string) {
-		e.App.QueueUpdateDraw(func() {
-			e.updateStatusTemp(msg)
-		})
+	// Configuration du callback de statut pour notifier les événements de reconnexion dans l'UI de Hollow
+	if ftpFS, ok := remoteFS.(*vfs.FtpFS); ok {
+		ftpFS.OnStatus = func(msg string) {
+			e.App.QueueUpdateDraw(func() {
+				e.updateStatusTemp(msg)
+			})
+		}
+	} else if sftpFS, ok := remoteFS.(*vfs.SftpFS); ok {
+		sftpFS.OnStatus = func(msg string) {
+			e.App.QueueUpdateDraw(func() {
+				e.updateStatusTemp(msg)
+			})
+		}
 	}
 
-	// Sauvegarde du système actuel pour permettre le retour
+	// Sauvegarde du système de fichiers actuel pour permettre le retour à la vue précédente (locale)
 	e.PreviousFS = e.FileSystem
 	e.PreviousDir = e.CurrentDir
 
-	e.FileSystem = ftpFS
+	e.FileSystem = remoteFS
 	e.CurrentDir = "/"
 	e.refreshFileList()
 	return nil
