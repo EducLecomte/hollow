@@ -13,10 +13,10 @@ Ce projet est développé avec une IA, dans un but récréatif et pédagogique.
 
 ## Fonctionnalités Clés
 
-- **Explorateur de fichiers multi-protocoles** : Navigation fluide dans l'arborescence locale et distante (FTP).
+- **Explorateur de fichiers multi-protocoles** : Navigation fluide dans l'arborescence locale et distante (FTP, FTPS, SFTP) avec tri automatique (dossiers en premier, puis fichiers).
 - **Architecture Asynchrone** : Chargement des fichiers en arrière-plan avec système d'annulation intelligent (Context). L'interface ne "gèle" jamais, même sur des connexions réseaux lentes.
-- **Client FTP Intégré** : Connectez-vous à des serveurs distants (via `Ctrl+T`) et éditez vos fichiers comme s'ils étaient sur votre disque.
-- **Gestion des droits (Chmod/Chown)** : Modifiez les permissions, les propriétaires et groupes directement depuis l'explorateur (via `Ctrl+O`), avec support de la récursivité locale.
+- **Client Réseau Sécurisé Intégré** : Connectez-vous à des serveurs distants (via `Ctrl+T`) en FTP, FTPS ou SFTP, et éditez vos fichiers comme s'ils étaient sur votre disque.
+- **Gestion des droits (Chmod/Chown)** : Modifiez les permissions, les propriétaires et groupes directement depuis l'explorateur (via `Ctrl+O`), avec support de la récursivité locale et de la modification distante (SFTP).
 - **Sécurité et Robustesse** : Détection automatique des fichiers binaires (images, exécutables) avec avertissements pour éviter les affichages illisibles ou les plantages.
 - **Explorateur d'archives** : Navigation transparente et extraction à la volée du contenu des fichiers `.zip`, `.tar` et `.tar.gz`.
 - **Éditeur de texte** : Mode plein écran, numérotation des lignes, recherche textuelle (`Ctrl+F`), et raccourcis de copier-coller classiques (façon Nano).
@@ -33,7 +33,7 @@ Le projet repose sur une abstraction puissante du système de fichiers (**VFS**)
 | Touche | Action |
 | :--- | :--- |
 | `Ctrl + G` | Aide contextuelle (adaptée au panneau actif) |
-| `Ctrl + T` | Ouvrir le dialogue de connexion FTP |
+| `Ctrl + T` | Ouvrir le dialogue de connexion réseau (FTP, FTPS, SFTP) |
 | `Ctrl + B` | Afficher / Masquer la barre latérale des Favoris |
 | `TAB` | Passer au panneau suivant (Favoris → Explorateur → Visualiseur) |
 | `Shift + TAB` | Passer au panneau précédent (cycle inverse) |
@@ -44,7 +44,7 @@ Le projet repose sur une abstraction puissante du système de fichiers (**VFS**)
 | `Ctrl + N` | Renommer le favori sélectionné |
 | `Ctrl + F` | Créer un nouveau fichier |
 | `Ctrl + D` | Créer un nouveau dossier |
-| `Ctrl + O` | Modifier les permissions (Chmod - local uniquement) |
+| `Ctrl + O` | Modifier les permissions (Chmod / Chown - local et SFTP) |
 | `Ctrl + R` / `Suppr` | Supprimer l'élément sélectionné dans l'explorateur ou les favoris |
 | `Ctrl + E` | Extraire une archive (ou un fichier d'une archive) |
 | `Ctrl + K` / `Ctrl + U` | Copier / Coller un élément |
@@ -65,6 +65,19 @@ Le projet repose sur une abstraction puissante du système de fichiers (**VFS**)
 ### Prérequis
 - `curl` et `wget` (pour l'installation rapide)
 
+### Lancement
+Hollow peut être lancé dans le répertoire courant ou en lui passant un chemin (fichier ou dossier) en argument de ligne de commande :
+```bash
+# Lancement classique (ouvre le dossier de travail actuel)
+hollow
+
+# Ouverture directe d'un répertoire spécifique
+hollow internal/app
+
+# Édition directe d'un fichier (existant ou nouveau)
+hollow README.md
+```
+
 ### Installation (Utilisateurs)
 Pour installer la version native pré-compilée sur Linux (Debian, Ubuntu, Kali, etc.) sans avoir besoin de Go :
 
@@ -79,4 +92,4 @@ chmod +x install.sh
 ```
 
 ---
-*Dernière mise à jour majeure : Dimanche 19 Avril 2026 - 20:08*
+*Dernière mise à jour majeure : Lundi 20 Juillet 2026 - 14:30*
