@@ -6,6 +6,11 @@
 
 Le projet est développé avec l'aide de l'IA dans un but récréatif, pédagogique et formateur.
 
+
+
+
+
+
 ## Ce que Hollow permet
 
 - Parcourir des fichiers locaux, FTP, FTPS et SFTP dans une interface à double panneau.
