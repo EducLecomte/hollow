@@ -44,7 +44,7 @@ func (e *EditorApp) showHelp(content string) {
 	e.showCenteredDialog("help", helpText, 65, 20)
 
 	helpText.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyCtrlG || event.Rune() == 'q' {
+		if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyF1 || event.Rune() == 'q' {
 			e.Pages.RemovePage("help")
 			if previousFocus != nil {
 				e.App.SetFocus(previousFocus)
@@ -96,26 +96,41 @@ func (e *EditorApp) showDeleteConfirmation() {
 	e.Pages.AddPage("delete", modal, true, true)
 }
 
-// showNewFileDialog affiche une boîte de saisie pour nommer et créer un nouveau fichier dans le dossier courant.
-func (e *EditorApp) showNewFileDialog() {
-	inputField := tview.NewInputField().SetLabel(" Nom du nouveau fichier: ")
-	inputField.SetBorder(true).SetTitle(" Nouveau Fichier ").SetTitleAlign(tview.AlignCenter)
+// showNewElementDialog affiche une boîte de dialogue pour créer un fichier ou un dossier.
+func (e *EditorApp) showNewElementDialog() {
+	form := tview.NewForm()
+	form.AddDropDown("Type", []string{"Fichier", "Dossier"}, 0, nil)
+	form.AddInputField("Nom", "", 40, nil, nil)
+	form.AddButton("Créer", func() {
+		_, elementType := form.GetFormItem(0).(*tview.DropDown).GetCurrentOption()
+		name := form.GetFormItem(1).(*tview.InputField).GetText()
+		if name == "" {
+			return
+		}
 
-	e.showCenteredDialog("newfile", inputField, 60, 3)
-
-	inputField.SetDoneFunc(func(key tcell.Key) {
-		if key == tcell.KeyEnter {
-			name := inputField.GetText()
-			if name != "" {
-				e.createFile(name)
-				e.App.SetFocus(e.Viewer)
-			}
-			e.Pages.RemovePage("newfile")
-		} else if key == tcell.KeyEsc {
-			e.Pages.RemovePage("newfile")
+		e.Pages.RemovePage("new_element")
+		if elementType == "Fichier" {
+			e.createFile(name)
+			e.App.SetFocus(e.Viewer)
+		} else {
+			e.createDir(name)
 			e.App.SetFocus(e.FileList)
 		}
 	})
+	form.AddButton("Annuler", func() {
+		e.Pages.RemovePage("new_element")
+		e.App.SetFocus(e.FileList)
+	})
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			e.Pages.RemovePage("new_element")
+			e.App.SetFocus(e.FileList)
+			return nil
+		}
+		return event
+	})
+	form.SetBorder(true).SetTitle(" Créer un élément ").SetTitleAlign(tview.AlignCenter)
+	e.showCenteredDialog("new_element", form, 60, 9)
 }
 
 // showSaveConfirmation demande à l'utilisateur s'il souhaite sauvegarder ses modifications avant de fermer l'éditeur plein écran.
@@ -146,32 +161,10 @@ func (e *EditorApp) showSaveConfirmation(content string) {
 	e.Pages.AddPage("save_confirm", modal, true, true)
 }
 
-// showNewDirDialog affiche une boîte de saisie pour créer un nouveau répertoire.
-func (e *EditorApp) showNewDirDialog() {
-	inputField := tview.NewInputField().SetLabel(" Nom du nouveau dossier: ")
-	inputField.SetBorder(true).SetTitle(" Nouveau Dossier ").SetTitleAlign(tview.AlignCenter)
-
-	e.showCenteredDialog("newdir", inputField, 60, 3)
-
-	inputField.SetDoneFunc(func(key tcell.Key) {
-		if key == tcell.KeyEnter {
-			name := inputField.GetText()
-			if name != "" {
-				e.createDir(name)
-			}
-			e.Pages.RemovePage("newdir")
-			e.App.SetFocus(e.FileList)
-		} else if key == tcell.KeyEsc {
-			e.Pages.RemovePage("newdir")
-			e.App.SetFocus(e.FileList)
-		}
-	})
-}
-
 // showFTPDialog affiche le formulaire de connexion unifié pour accéder à un serveur distant via FTP, FTPS ou SFTP.
 func (e *EditorApp) showFTPDialog() {
 	form := tview.NewForm()
-	
+
 	// Menu déroulant pour le choix du protocole
 	form.AddDropDown("Protocole", []string{"FTP", "FTPS", "SFTP"}, 0, func(option string, optionIndex int) {
 		// Sécurité : Le callback est appelé immédiatement lors de la création de la dropdown.
@@ -185,7 +178,7 @@ func (e *EditorApp) showFTPDialog() {
 			}
 		}
 	})
-	
+
 	form.AddInputField("Hôte", "", 30, nil, nil)
 	form.AddInputField("Port", "21", 6, nil, nil)
 	form.AddInputField("Utilisateur", "", 30, nil, nil)
@@ -273,7 +266,7 @@ func (e *EditorApp) showBinaryOpenConfirmation(path string, onConfirm func()) {
 	previousFocus := e.App.GetFocus()
 	fileName := filepath.Base(path)
 	fileDescription := utils.GetBinaryFileDescription(fileName)
-	
+
 	modal := tview.NewModal().
 		SetText(fmt.Sprintf("Le fichier %s semble être %s. L'ouvrir peut causer des instabilités ou un affichage illisible.\n\nVoulez-vous continuer ?", fileName, fileDescription)).
 		AddButtons([]string{"Ouvrir", "Annuler"}).
@@ -288,6 +281,7 @@ func (e *EditorApp) showBinaryOpenConfirmation(path string, onConfirm func()) {
 		})
 	e.Pages.AddPage("binary_confirm", modal, true, true)
 }
+
 // showRenameFavoriteDialog affiche une fenêtre de saisie pour donner un nom personnalisé à un favori.
 func (e *EditorApp) showRenameFavoriteDialog(index int) {
 	fav := e.Favorites[index]
@@ -326,7 +320,7 @@ func (e *EditorApp) showChmodDialog() {
 	}
 	file := e.CurrentFiles[index-1]
 	path := filepath.Join(e.CurrentDir, file.Name)
-	currentMode := fmt.Sprintf("%04o", file.Mode.Perm() & 0777)
+	currentMode := fmt.Sprintf("%04o", file.Mode.Perm()&0777)
 	currentOwner := file.Owner
 	currentGroup := file.Group
 
@@ -374,7 +368,7 @@ func (e *EditorApp) showChmodDialog() {
 			e.updateStatusTemp("[green]Propriétés modifiées avec succès")
 			e.refreshFileList()
 		}
-		
+
 		e.Pages.RemovePage("chmod")
 		e.App.SetFocus(e.FileList)
 	})

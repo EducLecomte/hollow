@@ -14,16 +14,15 @@ func (e *EditorApp) setupHandlers() {
 			tcell.KeyCtrlS: true, tcell.KeyCtrlF: true, tcell.KeyCtrlD: true,
 			tcell.KeyCtrlK: true, tcell.KeyCtrlU: true, tcell.KeyCtrlB: true,
 			tcell.KeyCtrlV: true, tcell.KeyCtrlX: true, tcell.KeyCtrlE: true,
-			tcell.KeyCtrlP: true, tcell.KeyCtrlG: true, tcell.KeyCtrlT: true, tcell.KeyCtrlO: true,
-			tcell.KeyCtrlA: true, tcell.KeyCtrlN: true, tcell.KeyCtrlR: true,
-			tcell.KeyTab: true, tcell.KeyEnter: true,
+			tcell.KeyCtrlN: true,
+			tcell.KeyTab:   true, tcell.KeyEnter: true,
 			tcell.KeyBackspace: true, tcell.KeyBackspace2: true,
 		}
 
 		switch event.Key() {
-		case tcell.KeyCtrlG:
+		case tcell.KeyF1:
 			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
-				e.Pages.HasPage("newfile") || e.Pages.HasPage("newdir") ||
+				e.Pages.HasPage("new_element") ||
 				e.Pages.HasPage("delete") || e.Pages.HasPage("save_confirm") ||
 				e.Pages.HasPage("ftp") {
 				return event
@@ -36,18 +35,26 @@ func (e *EditorApp) setupHandlers() {
 			}
 			e.showHelp(helpContent)
 			return nil
-		case tcell.KeyCtrlT:
+		case tcell.KeyF3:
 			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
-				e.Pages.HasPage("newfile") || e.Pages.HasPage("newdir") ||
+				e.Pages.HasPage("new_element") ||
 				e.Pages.HasPage("delete") || e.Pages.HasPage("ftp") {
 				return event
 			}
 			e.showFTPDialog()
 			return nil
+		case tcell.KeyF9:
+			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
+				e.Pages.HasPage("new_element") || e.Pages.HasPage("delete") ||
+				e.Pages.HasPage("save_confirm") || e.Pages.HasPage("ftp") {
+				return event
+			}
+			e.extractSelectedArchive()
+			return nil
 		case tcell.KeyCtrlB:
 			e.toggleFavorites()
 			return nil
-		case tcell.KeyCtrlP:
+		case tcell.KeyCtrlF:
 			e.showFuzzyFinder()
 			return nil
 		case tcell.KeyCtrlC:

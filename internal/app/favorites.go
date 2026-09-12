@@ -132,13 +132,13 @@ func (e *EditorApp) refreshFavoritesList() {
 		if i < 9 {
 			shortcut = rune('1' + i)
 		}
-		
+
 		// Au chargement initial, on ne sait pas encore lequel est sélectionné (généralement 0)
 		displayName := fav.Name
 		if i <= 1 {
 			displayName = "[yellow]" + fav.Name
 		}
-		
+
 		e.FavList.AddItem(displayName, fav.Path, shortcut, nil)
 	}
 	// On force le style correct pour l'élément sélectionné par défaut
@@ -153,7 +153,7 @@ func (e *EditorApp) updateFavoritesStyle(currentIndex int) {
 		if i >= itemCount {
 			break
 		}
-		
+
 		displayName := fav.Name
 		// Si favori système (Home/Racine) et qu'il n'est PAS sélectionné, on le met en jaune
 		if i <= 1 && i != currentIndex {
@@ -204,7 +204,7 @@ func (e *EditorApp) setupFavHandlers() {
 		case tcell.KeyCtrlB, tcell.KeyEsc:
 			e.toggleFavorites()
 			return nil
-		case tcell.KeyDelete, tcell.KeyCtrlR:
+		case tcell.KeyDelete:
 			index := e.FavList.GetCurrentItem()
 			// Protection des favoris système (0: Home, 1: Racine)
 			if index <= 1 {
@@ -219,14 +219,14 @@ func (e *EditorApp) setupFavHandlers() {
 			return nil
 		case tcell.KeyCtrlN:
 			index := e.FavList.GetCurrentItem()
-				if index <= 1 {
-					e.updateStatusTemp("[red]Les favoris système ne peuvent pas être renommés")
-					return nil
-				}
-				if index >= 0 && index < len(e.Favorites) {
-					e.showRenameFavoriteDialog(index)
-				}
+			if index <= 1 {
+				e.updateStatusTemp("[red]Les favoris système ne peuvent pas être renommés")
 				return nil
+			}
+			if index >= 0 && index < len(e.Favorites) {
+				e.showRenameFavoriteDialog(index)
+			}
+			return nil
 		}
 		return event
 	})

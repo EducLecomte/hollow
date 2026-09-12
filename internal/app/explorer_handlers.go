@@ -23,7 +23,7 @@ func (e *EditorApp) setupExplorerHandlers() {
 		case tcell.KeyCtrlB:
 			e.toggleFavorites()
 			return nil
-		case tcell.KeyCtrlA:
+		case tcell.KeyCtrlD:
 			index := e.FileList.GetCurrentItem()
 			if index > 0 && index-1 < len(e.CurrentFiles) {
 				file := e.CurrentFiles[index-1]
@@ -37,11 +37,8 @@ func (e *EditorApp) setupExplorerHandlers() {
 		case tcell.KeyCtrlX:
 			e.showQuitConfirmation()
 			return nil
-		case tcell.KeyCtrlF:
-			e.showNewFileDialog()
-			return nil
-		case tcell.KeyCtrlD:
-			e.showNewDirDialog()
+		case tcell.KeyF7:
+			e.showNewElementDialog()
 			return nil
 		case tcell.KeyCtrlK:
 			index := e.FileList.GetCurrentItem()
@@ -56,15 +53,13 @@ func (e *EditorApp) setupExplorerHandlers() {
 		case tcell.KeyCtrlE:
 			e.extractSelectedArchive()
 			return nil
-		case tcell.KeyDelete, tcell.KeyCtrlR:
+		case tcell.KeyDelete:
 			e.showDeleteConfirmation()
 			return nil
-		case tcell.KeyCtrlO:
+		case tcell.KeyF5:
 			e.showChmodDialog()
 			return nil
 		}
 		return event
 	})
 }
-
-

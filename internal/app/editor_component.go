@@ -112,7 +112,7 @@ func (e *EditorApp) showFullEditor(content string) {
 			}
 			return nil
 		}
-		if key == tcell.KeyCtrlG {
+		if key == tcell.KeyF1 {
 			e.showHelp(utils.HelpContentEditor)
 			return nil
 		}

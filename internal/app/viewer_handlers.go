@@ -11,8 +11,8 @@ func (e *EditorApp) setupViewerHandlers() {
 	e.Viewer.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		key := event.Key()
 
-		// Aide contextuelle Ctrl+G
-		if key == tcell.KeyCtrlG {
+		// Aide contextuelle F1
+		if key == tcell.KeyF1 {
 			helpContent := utils.HelpContentExplorer
 			if _, ok := e.FileSystem.(*vfs.ArchiveFS); ok {
 				helpContent = utils.HelpContentArchive
