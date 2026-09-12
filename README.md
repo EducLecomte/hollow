@@ -6,10 +6,7 @@
 
 Le projet est développé avec l'aide de l'IA dans un but récréatif, pédagogique et formateur.
 
-
-
-
-
+<br clear="right">
 
 ## Ce que Hollow permet
 
