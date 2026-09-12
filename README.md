@@ -1,6 +1,5 @@
+<img src="gophers/gopher_mckill.png" alt="Gopher de Hollow" align="left" width="300">
 # Hollow
-
-<img src="gophers/gopher_mckill.png" alt="Gopher de Hollow" align="right" width="200">
 
 **Hollow** est un explorateur de fichiers et un éditeur de texte TUI écrit en Go. Il combine la simplicité de **Nano**, l'efficacité de **Midnight Commander** et la possibilité de travailler sur des fichiers locaux ou distants depuis un seul terminal.
 
@@ -56,7 +55,7 @@ Les releases Linux sont disponibles en `amd64` et `arm64`. Le terminal doit disp
 
 ## Utilisation
 
-<img src="gophers/gopher_tui.png" alt="Gopher dans l'interface TUI" align="right" width="200">
+<img src="gophers/gopher_tui.png" alt="Gopher dans l'interface TUI" align="right" width="250">
 
 ```bash
 # Ouvrir le répertoire courant
@@ -105,12 +104,13 @@ hollow README.md
 
 ## Architecture
 
-<img src="gophers/gopher_clean.png" alt="Gopher de Hollow" align="right" width="120">
 
 L'abstraction de système de fichiers (**VFS**) de `internal/vfs/` sépare les protocoles de la logique de l'interface. Elle permet de gérer les systèmes local, FTP, FTPS, SFTP et les archives sans dupliquer le comportement de l'application.
 
 Le code de l'interface se trouve dans `internal/app/`, tandis que le point d'entrée est dans `cmd/hollow/`.
 
 ## Contribuer
+
+<img src="gophers/gopher_clean.png" alt="Gopher de Hollow" align="right" width="120">
 
 Les idées, retours et contributions sont les bienvenus. 
