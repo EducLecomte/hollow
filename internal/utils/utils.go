@@ -45,7 +45,6 @@ const (
  --------------------------
  1 - 9       : Accès rapide direct au favori par son numéro
  Ctrl + N    : Renommer le favori sélectionné
-
  Suppr       : Supprimer le favori de la liste
  `
 
