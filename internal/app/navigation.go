@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"sort" // Importé pour trier la liste de fichiers (dossiers d'abord, puis fichiers)
+	"sort"
 	"strings"
 
 	"github.com/EducLecomte/go_hollow_project/internal/utils"
@@ -14,22 +14,31 @@ import (
 	"github.com/rivo/tview"
 )
 
-// refreshFileList recharge la liste des fichiers du répertoire courant et met à jour l'affichage de l'explorateur.
-func (e *EditorApp) refreshFileList() {
+// refreshPanel recharge la liste des fichiers d'un panneau spécifique et met à jour ses affichages.
+func (e *EditorApp) refreshPanel(p *PanelState) {
+	if p == nil {
+		return
+	}
+
 	go func() {
-		files, err := e.FileSystem.List(context.Background(), e.CurrentDir)
+		files, err := p.FileSystem.List(context.Background(), p.CurrentDir)
 
 		e.App.QueueUpdateDraw(func() {
-			e.FileList.Clear()
-			e.FileList.AddItem("..", "", 0, nil)
+			p.List.Clear()
+			p.List.AddItem("..", "", 0, nil)
 
 			if err != nil {
-				e.CurrentFiles = nil
-				e.updateStatus(fmt.Sprintf("[red]Erreur listage: %v", err))
+				p.CurrentFiles = nil
+				p.UpdateInfoBox(nil)
+				p.UpdateTitle(p == e.ActivePanel)
+				if e.PathBar != nil && p == e.ActivePanel {
+					e.PathBar.SetText(fmt.Sprintf(" Path: %s", utils.ShortenPath(p.CurrentDir)))
+				}
+				e.updateStatus(fmt.Sprintf("[red]Erreur listage (%s): %v", p.DisplayName(), err))
 				return
 			}
 
-			// Tri des entrées : dossiers d'abord, puis fichiers par ordre alphabétique (insensible à la casse)
+			// Tri des entrées : dossiers d'abord, puis fichiers par ordre alphabétique insensible à la casse
 			sort.Slice(files, func(i, j int) bool {
 				if files[i].IsDir && !files[j].IsDir {
 					return true
@@ -40,12 +49,13 @@ func (e *EditorApp) refreshFileList() {
 				return strings.ToLower(files[i].Name) < strings.ToLower(files[j].Name)
 			})
 
-			e.PathBar.SetText(fmt.Sprintf(" Path: %s", utils.ShortenPath(e.CurrentDir)))
-			e.CurrentFiles = files
+			p.CurrentFiles = files
+			p.UpdateTitle(p == e.ActivePanel)
+			if e.PathBar != nil && p == e.ActivePanel {
+				e.PathBar.SetText(fmt.Sprintf(" Path: %s", utils.ShortenPath(p.CurrentDir)))
+			}
 
-			// Index de sélection initialisé à 0 ("..")
 			selectedIndex := 0
-
 			for i, f := range files {
 				var displayName string
 				if f.IsDir {
@@ -53,62 +63,96 @@ func (e *EditorApp) refreshFileList() {
 				} else {
 					displayName = f.Name
 				}
-				e.FileList.AddItem(displayName, "", 0, nil)
+				p.List.AddItem(displayName, "", 0, nil)
 
-				// Si un fichier initial est spécifié et correspond à l'élément courant,
-				// on enregistre son index de liste (i + 1 car l'index 0 est "..")
-				if e.initialFileSelected != "" && f.Name == e.initialFileSelected {
+				if p.initialFileSelected != "" && f.Name == p.initialFileSelected {
 					selectedIndex = i + 1
 				}
 			}
 
-			// Si un fichier a été identifié pour sélection, on applique le changement de focus
 			if selectedIndex > 0 {
-				e.FileList.SetCurrentItem(selectedIndex)
-				// On vide le champ pour éviter de repositionner lors des prochains rafraîchissements
-				e.initialFileSelected = ""
+				p.List.SetCurrentItem(selectedIndex)
+				p.initialFileSelected = ""
+			}
+
+			// Met à jour l'InfoBox pour la sélection
+			curIdx := p.List.GetCurrentItem()
+			if curIdx > 0 && curIdx-1 < len(p.CurrentFiles) {
+				p.UpdateInfoBox(&p.CurrentFiles[curIdx-1])
+			} else {
+				p.UpdateInfoBox(nil)
+			}
+
+			// Si on est en mode par défaut avec visualiseur, on met à jour le visualiseur
+			if p == e.LeftPanel && !e.IsDualPane() {
+				e.triggerViewerPreviewForCurrentItem()
 			}
 		})
 	}()
 }
 
-// handleFileSelection traite l'action de validation sur un élément de la liste (navigation, ouverture de fichier ou d'archive).
-func (e *EditorApp) handleFileSelection(index int) {
+// refreshActivePanel rafraîchit le panneau actuellement sous focus.
+func (e *EditorApp) refreshActivePanel() {
+	e.refreshPanel(e.ActivePanel)
+}
+
+// refreshBothPanels recharge simultanément les deux panneaux.
+func (e *EditorApp) refreshBothPanels() {
+	e.refreshPanel(e.LeftPanel)
+	if e.IsDualPane() {
+		e.refreshPanel(e.RightPanel)
+	}
+}
+
+// refreshFileList maintient la compatibilité pour rafraîchir le panneau actif.
+func (e *EditorApp) refreshFileList() {
+	e.refreshActivePanel()
+}
+
+// handleFileSelection traite l'action de validation sur un élément d'un panneau donné.
+func (e *EditorApp) handleFileSelection(p *PanelState, index int) {
+	if p == nil {
+		p = e.ActivePanel
+	}
+
 	if index == 0 {
-		if e.CurrentDir == "/" || e.CurrentDir == "." || e.CurrentDir == "" {
-			if e.PreviousFS != nil {
-				// Sortie du système de fichiers virtuel
-				e.FileSystem = e.PreviousFS
-				e.CurrentDir = e.PreviousDir
-				e.PreviousFS = nil
-				e.refreshFileList()
-				e.updateStatus(utils.HelpMsgFiles)
+		if p.CurrentDir == "/" || p.CurrentDir == "." || p.CurrentDir == "" {
+			// Si on est sur un serveur distant, remonter au-dessus de la racine équivaut à se déconnecter
+			if p.IsRemote() {
+				e.disconnectRemote(p)
+				return
+			}
+			// Si on était dans une archive
+			if p.PreviousFS != nil {
+				if closer, ok := p.FileSystem.(io.Closer); ok {
+					_ = closer.Close()
+				}
+				p.FileSystem = p.PreviousFS
+				p.CurrentDir = p.PreviousDir
+				p.PreviousFS = nil
+				p.RemoteLabel = ""
+				e.refreshPanel(p)
+				e.updatePanelFocus()
 				return
 			}
 		}
 
-		e.CurrentDir = filepath.Dir(e.CurrentDir)
-		e.refreshFileList()
-
-		// Mise à jour de la barre d'état selon le contexte
-		if _, ok := e.FileSystem.(*vfs.ArchiveFS); ok {
-			e.updateStatus(utils.HelpMsgArchive)
-		} else {
-			e.updateStatus(utils.HelpMsgFiles)
-		}
+		p.CurrentDir = filepath.Dir(p.CurrentDir)
+		e.refreshPanel(p)
+		e.updatePanelFocus()
 		return
 	}
 
-	if e.CurrentFiles == nil || index-1 >= len(e.CurrentFiles) {
+	if p.CurrentFiles == nil || index-1 >= len(p.CurrentFiles) {
 		return
 	}
 
-	file := e.CurrentFiles[index-1]
-	targetPath := filepath.Join(e.CurrentDir, file.Name)
+	file := p.CurrentFiles[index-1]
+	targetPath := filepath.Join(p.CurrentDir, file.Name)
 
 	if file.IsDir {
-		e.CurrentDir = targetPath
-		e.refreshFileList()
+		p.CurrentDir = targetPath
+		e.refreshPanel(p)
 	} else if utils.IsArchive(file.Name) {
 		ctx, cancel := context.WithCancel(context.Background())
 		e.showLoadingDialog("Chargement", fmt.Sprintf("Ouverture de %s en cours...", file.Name), cancel)
@@ -127,12 +171,12 @@ func (e *EditorApp) handleFileSelection(index int) {
 					}
 					return
 				}
-				e.PreviousFS = e.FileSystem
-				e.PreviousDir = e.CurrentDir
-				e.FileSystem = archiveFS
-				e.CurrentDir = "/"
-				e.refreshFileList()
-				e.updateStatus(utils.HelpMsgArchive) // Aide spécifique aux archives
+				p.PreviousFS = p.FileSystem
+				p.PreviousDir = p.CurrentDir
+				p.FileSystem = archiveFS
+				p.CurrentDir = "/"
+				e.refreshPanel(p)
+				e.updateStatus(utils.HelpMsgArchive)
 				e.updateStatusTemp(fmt.Sprintf("[green]Exploration de l'archive: %s", file.Name))
 			})
 		}()
@@ -141,14 +185,14 @@ func (e *EditorApp) handleFileSelection(index int) {
 	}
 }
 
-// openFile lit le contenu d'un fichier via le VFS de manière asynchrone et lance l'éditeur.
-// Le paramètre force permet de passer outre la détection de fichier binaire.
+// openFile lit le contenu d'un fichier via le VFS du panneau actif de manière asynchrone et lance l'éditeur.
 func (e *EditorApp) openFile(path string, force bool) {
+	p := e.ActivePanel
 	ctx, cancel := context.WithCancel(context.Background())
 	e.showLoadingDialog("Chargement", fmt.Sprintf("Ouverture de %s...", filepath.Base(path)), cancel)
 
 	go func() {
-		reader, err := e.FileSystem.Read(ctx, path)
+		reader, err := p.FileSystem.Read(ctx, path)
 		if err != nil {
 			e.App.QueueUpdateDraw(func() {
 				e.Pages.RemovePage("loading")
@@ -159,7 +203,6 @@ func (e *EditorApp) openFile(path string, force bool) {
 		defer reader.Close()
 
 		buf := new(bytes.Buffer)
-		// Lecture par blocs pour permettre l'annulation
 		tempBuf := make([]byte, 32*1024)
 		for {
 			select {
@@ -172,7 +215,6 @@ func (e *EditorApp) openFile(path string, force bool) {
 				buf.Write(tempBuf[:n])
 			}
 
-			// Détection binaire sur le premier bloc lu (si pas forcé)
 			if !force && buf.Len() > 0 && utils.IsBinary(buf.Bytes()) {
 				e.App.QueueUpdateDraw(func() {
 					e.Pages.RemovePage("loading")
@@ -204,9 +246,9 @@ func (e *EditorApp) openFile(path string, force bool) {
 	}()
 }
 
-// previewFile lit les premiers octets d'un fichier de manière asynchrone pour le visualiseur.
-func (e *EditorApp) previewFile(ctx context.Context, path string) {
-	reader, err := e.FileSystem.Read(ctx, path)
+// previewFile lit les premiers octets d'un fichier pour le visualiseur.
+func (e *EditorApp) previewFile(ctx context.Context, fs vfs.VFS, path string) {
+	reader, err := fs.Read(ctx, path)
 	if err != nil {
 		e.App.QueueUpdateDraw(func() {
 			e.Viewer.SetText(fmt.Sprintf("[red]Erreur lecture: %v", err))
@@ -216,7 +258,6 @@ func (e *EditorApp) previewFile(ctx context.Context, path string) {
 	defer reader.Close()
 
 	buf := new(bytes.Buffer)
-	// Lecture limitée (10 Ko)
 	_, _ = io.CopyN(buf, reader, 10000)
 
 	select {
@@ -227,7 +268,6 @@ func (e *EditorApp) previewFile(ctx context.Context, path string) {
 
 	content := strings.ReplaceAll(buf.String(), "\r", "")
 
-	// Détection des fichiers binaires pour éviter les gels ou affichages illisibles
 	if utils.IsBinary(buf.Bytes()) {
 		e.App.QueueUpdateDraw(func() {
 			fileName := filepath.Base(path)
@@ -246,7 +286,6 @@ func (e *EditorApp) previewFile(ctx context.Context, path string) {
 			return
 		default:
 		}
-		// On utilise TranslateANSI pour supporter la coloration de Chroma via tview
 		e.Viewer.SetText(tview.TranslateANSI(highlighted))
 		e.Viewer.ScrollToBeginning()
 		e.Viewer.SetTitle(fmt.Sprintf(" Visualiseur: %s ", filepath.Base(path)))
@@ -254,8 +293,8 @@ func (e *EditorApp) previewFile(ctx context.Context, path string) {
 }
 
 // previewDirectory génère une arborescence textuelle de manière asynchrone pour le visualiseur.
-func (e *EditorApp) previewDirectory(ctx context.Context, path string) {
-	files, err := e.FileSystem.List(ctx, path)
+func (e *EditorApp) previewDirectory(ctx context.Context, fs vfs.VFS, path string) {
+	files, err := fs.List(ctx, path)
 	if err != nil {
 		e.App.QueueUpdateDraw(func() {
 			e.Viewer.SetText(fmt.Sprintf("[red]Erreur lecture dossier: %v", err))

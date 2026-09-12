@@ -120,7 +120,7 @@ func (e *EditorApp) toggleFavorites() {
 	if e.ShowFavs {
 		e.App.SetFocus(e.FavList)
 	} else {
-		e.App.SetFocus(e.FileList)
+		e.App.SetFocus(e.ActivePanel.List)
 	}
 }
 
@@ -133,7 +133,6 @@ func (e *EditorApp) refreshFavoritesList() {
 			shortcut = rune('1' + i)
 		}
 
-		// Au chargement initial, on ne sait pas encore lequel est sélectionné (généralement 0)
 		displayName := fav.Name
 		if i <= 1 {
 			displayName = "[yellow]" + fav.Name
@@ -141,7 +140,6 @@ func (e *EditorApp) refreshFavoritesList() {
 
 		e.FavList.AddItem(displayName, fav.Path, shortcut, nil)
 	}
-	// On force le style correct pour l'élément sélectionné par défaut
 	e.updateFavoritesStyle(e.FavList.GetCurrentItem())
 }
 
@@ -149,17 +147,14 @@ func (e *EditorApp) refreshFavoritesList() {
 func (e *EditorApp) updateFavoritesStyle(currentIndex int) {
 	itemCount := e.FavList.GetItemCount()
 	for i, fav := range e.Favorites {
-		// Sécurité : ne pas mettre à jour des items qui n'ont pas encore été ajoutés au widget List
 		if i >= itemCount {
 			break
 		}
 
 		displayName := fav.Name
-		// Si favori système (Home/Racine) et qu'il n'est PAS sélectionné, on le met en jaune
 		if i <= 1 && i != currentIndex {
 			displayName = "[yellow]" + fav.Name
 		}
-		// On met à jour l'item dans la liste sans changer le shortcut ni le secondary text
 		e.FavList.SetItemText(i, displayName, fav.Path)
 	}
 }
@@ -168,8 +163,9 @@ func (e *EditorApp) updateFavoritesStyle(currentIndex int) {
 func (e *EditorApp) setupFavHandlers() {
 	e.FavList.SetChangedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
 		if index >= 0 && index < len(e.Favorites) {
-			e.FileSizeBox.SetText("[yellow]Favori : [white]" + utils.ShortenPath(e.Favorites[index].Path))
-			// Met à jour les couleurs pour éviter le jaune sur fond blanc
+			if e.ActivePanel != nil {
+				e.ActivePanel.InfoBox.SetText("[yellow]Favori : [white]" + utils.ShortenPath(e.Favorites[index].Path))
+			}
 			e.updateFavoritesStyle(index)
 		}
 	})
@@ -177,26 +173,26 @@ func (e *EditorApp) setupFavHandlers() {
 	e.FavList.SetSelectedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
 		if index < len(e.Favorites) {
 			targetPath := e.Favorites[index].Path
+			p := e.ActivePanel
 
-			// Sortie de système de fichiers virtuel si nécessaire
-			if e.PreviousFS != nil {
-				e.FileSystem = e.PreviousFS
-				e.PreviousFS = nil
+			if p.PreviousFS != nil {
+				p.FileSystem = p.PreviousFS
+				p.PreviousFS = nil
+				p.RemoteLabel = ""
 			}
 
-			e.CurrentDir = targetPath
-			e.refreshFileList()
-			// e.App.SetFocus(e.FileList) // On garde le focus ici pour permettre une navigation rapide
+			p.CurrentDir = targetPath
+			e.refreshPanel(p)
 		}
 	})
 
 	e.FavList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyTab:
-			e.App.SetFocus(e.FileList)
+			e.App.SetFocus(e.ActivePanel.List)
 			return nil
 		case tcell.KeyBacktab:
-			e.App.SetFocus(e.Viewer)
+			e.App.SetFocus(e.InactivePanel().List)
 			return nil
 		case tcell.KeyCtrlX:
 			e.showQuitConfirmation()
@@ -206,7 +202,6 @@ func (e *EditorApp) setupFavHandlers() {
 			return nil
 		case tcell.KeyDelete:
 			index := e.FavList.GetCurrentItem()
-			// Protection des favoris système (0: Home, 1: Racine)
 			if index <= 1 {
 				e.updateStatusTemp("[red]Les favoris système ne peuvent pas être supprimés")
 				return nil

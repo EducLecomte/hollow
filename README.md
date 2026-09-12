@@ -38,24 +38,25 @@ Le projet repose sur une abstraction puissante du système de fichiers (**VFS**)
 
 ## Raccourcis Clavier
 
-### Navigation (Explorateur / Visualiseur / Favoris)
+### Navigation (Mode par défaut & Double Panneau)
 | Touche | Action |
 | :--- | :--- |
-| `F1` | Aide contextuelle (adaptée au panneau actif) |
-| `F3` | Ouvrir le dialogue de connexion FTP/SFTP (FTP, FTPS, SFTP) |
+| `F1` | Aide contextuelle (adaptée au mode actif) |
+| `F3` | Connexion réseau (**FTP / FTPS / SFTP**) : active automatiquement le double panneau (Local ↔ Distant) |
 | `F5` | Modifier les permissions (Chmod / Chown) |
-| `F7` | Créer un fichier ou un dossier |
-| `F9` | Extraire une archive ou un élément d’archive |
+| `F6` | **Mode Transfert** : active le double panneau en local, ou transfère l'élément sélectionné vers l'autre panneau |
+| `Shift + F6` | Transférer depuis l'autre panneau vers le panneau actif |
+| `F7` | Créer un fichier ou un dossier dans le panneau actif |
+| `F9` | Extraire une archive vers le panneau opposé |
+| `TAB` / `Shift + TAB` | Passer au **Visualiseur** (mode par défaut) ou basculer entre **panneau gauche / droit** (mode double panneau / FTP) |
 | `Ctrl + B` | Afficher / Masquer la barre latérale des Favoris |
 | `Ctrl + D` | Ajouter / Retirer le dossier courant des favoris |
 | `Ctrl + F` | Recherche Globale (Fuzzy Finder sur tout le disque) |
-| `Ctrl + K` / `Ctrl + U` | Copier / Coller un élément |
+| `Ctrl + K` / `Ctrl + U` | Copier / Coller le chemin d'un élément |
 | `Ctrl + X` | Quitter Hollow (demande confirmation) |
-| `Entrée` | Ouvrir un fichier ou entrer dans un dossier / archive |
-| `..` | Remonter au dossier parent |
-| `Suppr` | Supprimer l'élément sélectionné dans l'explorateur ou les favoris |
-| `TAB` | Passer au panneau suivant (Favoris → Explorateur → Visualiseur) |
-| `Shift + TAB` | Passer au panneau précédent (cycle inverse) |
+| `Entrée` | Ouvrir un fichier (éditeur) ou entrer dans un dossier / archive |
+| `..` | Remonter au dossier parent (ou quitter FS distant/archive) |
+| `Suppr` | Supprimer l'élément sélectionné dans le panneau actif |
 | `1-9` | Accès rapide direct aux favoris (Home & Racine par défaut) |
 | `Ctrl + N` | Renommer le favori sélectionné |
 

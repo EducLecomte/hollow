@@ -13,7 +13,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-// showCenteredDialog est une fonction utilitaire pour positionner n'importe quel composant au centre de l'écran par-dessus l'interface principale.
+// showCenteredDialog est une fonction utilitaire pour positionner un composant au centre de l'écran.
 func (e *EditorApp) showCenteredDialog(pageName string, item tview.Primitive, width, height int) {
 	flex := tview.NewFlex().
 		AddItem(nil, 0, 1, false).
@@ -27,7 +27,7 @@ func (e *EditorApp) showCenteredDialog(pageName string, item tview.Primitive, wi
 	e.App.SetFocus(item)
 }
 
-// showHelp affiche une fenêtre modale contenant la liste des raccourcis adaptée au contexte passé en paramètre.
+// showHelp affiche une fenêtre modale contenant la liste des raccourcis adaptée au contexte.
 func (e *EditorApp) showHelp(content string) {
 	previousFocus := e.App.GetFocus()
 	helpText := tview.NewTextView().
@@ -41,7 +41,7 @@ func (e *EditorApp) showHelp(content string) {
 		SetTitleAlign(tview.AlignCenter).
 		SetBorderPadding(1, 1, 2, 2)
 
-	e.showCenteredDialog("help", helpText, 65, 20)
+	e.showCenteredDialog("help", helpText, 70, 22)
 
 	helpText.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyF1 || event.Rune() == 'q' {
@@ -55,7 +55,7 @@ func (e *EditorApp) showHelp(content string) {
 	})
 }
 
-// showQuitConfirmation affiche une boîte de dialogue demandant confirmation avant de quitter définitivement l'application.
+// showQuitConfirmation affiche une boîte de dialogue demandant confirmation avant de quitter.
 func (e *EditorApp) showQuitConfirmation() {
 	previousFocus := e.App.GetFocus()
 	modal := tview.NewModal().
@@ -74,30 +74,51 @@ func (e *EditorApp) showQuitConfirmation() {
 	e.Pages.AddPage("quit", modal, true, true)
 }
 
-// showDeleteConfirmation affiche une confirmation avant de supprimer physiquement un fichier ou un dossier.
+// showDeleteConfirmation affiche une confirmation avant de supprimer un fichier ou un dossier.
 func (e *EditorApp) showDeleteConfirmation() {
-	index := e.FileList.GetCurrentItem()
-	if index <= 0 || index-1 >= len(e.CurrentFiles) {
+	p := e.ActivePanel
+	item := p.GetSelectedItem()
+	if item == nil {
 		return
 	}
-	file := e.CurrentFiles[index-1]
-	path := filepath.Join(e.CurrentDir, file.Name)
+	path := filepath.Join(p.CurrentDir, item.Name)
 
 	modal := tview.NewModal().
-		SetText(fmt.Sprintf("Voulez-vous vraiment supprimer %s ?", file.Name)).
+		SetText(fmt.Sprintf("Voulez-vous vraiment supprimer %s (%s) ?", item.Name, p.DisplayName())).
 		AddButtons([]string{"Supprimer", "Annuler"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 			if buttonLabel == "Supprimer" {
 				e.deleteElement(path)
 			}
 			e.Pages.RemovePage("delete")
-			e.App.SetFocus(e.FileList)
+			e.App.SetFocus(p.List)
 		})
 	e.Pages.AddPage("delete", modal, true, true)
 }
 
-// showNewElementDialog affiche une boîte de dialogue pour créer un fichier ou un dossier.
+// showOverwriteConfirmation demande confirmation avant d'écraser un fichier existant lors d'un transfert.
+func (e *EditorApp) showOverwriteConfirmation(fileName, destPanelName string, onChoice func(overwrite bool)) {
+	previousFocus := e.App.GetFocus()
+	modal := tview.NewModal().
+		SetText(fmt.Sprintf("L'élément '%s' existe déjà dans la destination (%s).\nVoulez-vous l'écraser ?", fileName, destPanelName)).
+		AddButtons([]string{"Écraser", "Annuler"}).
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			e.Pages.RemovePage("overwrite_confirm")
+			if buttonLabel == "Écraser" {
+				onChoice(true)
+			} else {
+				onChoice(false)
+				if previousFocus != nil {
+					e.App.SetFocus(previousFocus)
+				}
+			}
+		})
+	e.Pages.AddPage("overwrite_confirm", modal, true, true)
+}
+
+// showNewElementDialog affiche une boîte de dialogue pour créer un fichier ou un dossier dans le panneau actif.
 func (e *EditorApp) showNewElementDialog() {
+	p := e.ActivePanel
 	form := tview.NewForm()
 	form.AddDropDown("Type", []string{"Fichier", "Dossier"}, 0, nil)
 	form.AddInputField("Nom", "", 40, nil, nil)
@@ -111,29 +132,28 @@ func (e *EditorApp) showNewElementDialog() {
 		e.Pages.RemovePage("new_element")
 		if elementType == "Fichier" {
 			e.createFile(name)
-			e.App.SetFocus(e.Viewer)
 		} else {
 			e.createDir(name)
-			e.App.SetFocus(e.FileList)
+			e.App.SetFocus(p.List)
 		}
 	})
 	form.AddButton("Annuler", func() {
 		e.Pages.RemovePage("new_element")
-		e.App.SetFocus(e.FileList)
+		e.App.SetFocus(p.List)
 	})
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
 			e.Pages.RemovePage("new_element")
-			e.App.SetFocus(e.FileList)
+			e.App.SetFocus(p.List)
 			return nil
 		}
 		return event
 	})
-	form.SetBorder(true).SetTitle(" Créer un élément ").SetTitleAlign(tview.AlignCenter)
+	form.SetBorder(true).SetTitle(fmt.Sprintf(" Créer un élément [%s] ", p.DisplayName())).SetTitleAlign(tview.AlignCenter)
 	e.showCenteredDialog("new_element", form, 60, 9)
 }
 
-// showSaveConfirmation demande à l'utilisateur s'il souhaite sauvegarder ses modifications avant de fermer l'éditeur plein écran.
+// showSaveConfirmation demande confirmation avant de fermer l'éditeur s'il y a des modifications.
 func (e *EditorApp) showSaveConfirmation(content string) {
 	previousFocus := e.App.GetFocus()
 	modal := tview.NewModal().
@@ -144,13 +164,12 @@ func (e *EditorApp) showSaveConfirmation(content string) {
 			case "Sauvegarder":
 				e.saveFromFullEditor(content, func() {
 					e.Pages.RemovePage("edit_screen")
-					e.App.SetFocus(e.FileList)
+					e.App.SetFocus(e.ActivePanel.List)
 				})
 			case "Ignorer":
 				e.Pages.RemovePage("edit_screen")
-				e.App.SetFocus(e.FileList)
+				e.App.SetFocus(e.ActivePanel.List)
 			case "Annuler":
-				// On ferme juste la modale, le focus revient à l'éditeur
 			}
 			e.Pages.RemovePage("save_confirm")
 			if buttonLabel != "Sauvegarder" && buttonLabel != "Ignorer" && previousFocus != nil {
@@ -161,14 +180,12 @@ func (e *EditorApp) showSaveConfirmation(content string) {
 	e.Pages.AddPage("save_confirm", modal, true, true)
 }
 
-// showFTPDialog affiche le formulaire de connexion unifié pour accéder à un serveur distant via FTP, FTPS ou SFTP.
+// showFTPDialog affiche le formulaire de connexion unifié pour accéder à un serveur distant.
 func (e *EditorApp) showFTPDialog() {
 	form := tview.NewForm()
 
 	// Menu déroulant pour le choix du protocole
 	form.AddDropDown("Protocole", []string{"FTP", "FTPS", "SFTP"}, 0, func(option string, optionIndex int) {
-		// Sécurité : Le callback est appelé immédiatement lors de la création de la dropdown.
-		// On s'assure donc que le champ Port (index 2) a bien été ajouté au formulaire avant de le modifier.
 		if form.GetFormItemCount() > 2 {
 			portField := form.GetFormItem(2).(*tview.InputField)
 			if option == "SFTP" {
@@ -185,7 +202,6 @@ func (e *EditorApp) showFTPDialog() {
 	form.AddPasswordField("Mot de passe", "", 30, '*', nil)
 
 	form.AddButton("Se connecter", func() {
-		// Extraction des valeurs saisies dans le formulaire unifié
 		_, proto := form.GetFormItem(0).(*tview.DropDown).GetCurrentOption()
 		host := form.GetFormItem(1).(*tview.InputField).GetText()
 		portStr := form.GetFormItem(2).(*tview.InputField).GetText()
@@ -207,14 +223,11 @@ func (e *EditorApp) showFTPDialog() {
 			}
 		}
 
-		// Fermeture de la fenêtre de configuration de connexion
 		e.Pages.RemovePage("ftp")
 
-		// Affichage de la boîte de dialogue de chargement
 		_, cancel := context.WithCancel(context.Background())
-		e.showLoadingDialog("Chargement", fmt.Sprintf("Connexion à %s...", host), cancel)
+		e.showLoadingDialog("Chargement", fmt.Sprintf("Connexion à %s (%s)...", host, proto), cancel)
 
-		// Lancement asynchrone de la connexion réseau
 		go func() {
 			err := e.connectRemote(proto, host, port, user, pass)
 			e.App.QueueUpdateDraw(func() {
@@ -222,7 +235,7 @@ func (e *EditorApp) showFTPDialog() {
 				if err != nil {
 					e.updateStatusTemp(fmt.Sprintf("[red]Erreur %s: %v", proto, err))
 				} else {
-					e.updateStatusTemp(fmt.Sprintf("[green]Connecté avec succès à %s via %s", host, proto))
+					e.updateStatusTemp(fmt.Sprintf("[green]Connecté à %s via %s (Double panneau activé)", host, proto))
 				}
 			})
 		}()
@@ -230,21 +243,20 @@ func (e *EditorApp) showFTPDialog() {
 
 	form.AddButton("Annuler", func() {
 		e.Pages.RemovePage("ftp")
-		e.App.SetFocus(e.FileList)
+		e.App.SetFocus(e.ActivePanel.List)
 	})
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
 			e.Pages.RemovePage("ftp")
-			e.App.SetFocus(e.FileList)
+			e.App.SetFocus(e.ActivePanel.List)
 			return nil
 		}
 		return event
 	})
 
-	form.SetBorder(true).SetTitle(" Connexion Réseau ").SetTitleAlign(tview.AlignCenter)
-	// Augmentation légère de la hauteur de la boîte de dialogue pour accueillir le nouveau champ Protocole (hauteur 17 au lieu de 15)
-	e.showCenteredDialog("ftp", form, 50, 17)
+	form.SetBorder(true).SetTitle(" Connexion Réseau (FTP/SFTP) ").SetTitleAlign(tview.AlignCenter)
+	e.showCenteredDialog("ftp", form, 52, 17)
 }
 
 // showLoadingDialog affiche une modale d'attente pour les opérations longues avec option d'annulation.
@@ -261,7 +273,7 @@ func (e *EditorApp) showLoadingDialog(title string, message string, cancelFunc c
 	e.Pages.AddPage("loading", modal, true, true)
 }
 
-// showBinaryOpenConfirmation affiche un avertissement avant d'ouvrir un fichier détecté comme binaire ou non-textuel.
+// showBinaryOpenConfirmation affiche un avertissement avant d'ouvrir un fichier binaire.
 func (e *EditorApp) showBinaryOpenConfirmation(path string, onConfirm func()) {
 	previousFocus := e.App.GetFocus()
 	fileName := filepath.Base(path)
@@ -282,7 +294,7 @@ func (e *EditorApp) showBinaryOpenConfirmation(path string, onConfirm func()) {
 	e.Pages.AddPage("binary_confirm", modal, true, true)
 }
 
-// showRenameFavoriteDialog affiche une fenêtre de saisie pour donner un nom personnalisé à un favori.
+// showRenameFavoriteDialog affiche une fenêtre de saisie pour renommer un favori.
 func (e *EditorApp) showRenameFavoriteDialog(index int) {
 	fav := e.Favorites[index]
 	inputField := tview.NewInputField().
@@ -312,24 +324,24 @@ func (e *EditorApp) showRenameFavoriteDialog(index int) {
 	})
 }
 
-// showChmodDialog affiche une fenêtre pour modifier les permissions Unix d'un fichier/dossier.
+// showChmodDialog affiche une modale pour modifier les permissions Unix d'un élément du panneau actif.
 func (e *EditorApp) showChmodDialog() {
-	index := e.FileList.GetCurrentItem()
-	if index <= 0 || index-1 >= len(e.CurrentFiles) {
+	p := e.ActivePanel
+	item := p.GetSelectedItem()
+	if item == nil {
 		return
 	}
-	file := e.CurrentFiles[index-1]
-	path := filepath.Join(e.CurrentDir, file.Name)
-	currentMode := fmt.Sprintf("%04o", file.Mode.Perm()&0777)
-	currentOwner := file.Owner
-	currentGroup := file.Group
+	path := filepath.Join(p.CurrentDir, item.Name)
+	currentMode := fmt.Sprintf("%04o", item.Mode.Perm()&0777)
+	currentOwner := item.Owner
+	currentGroup := item.Group
 
 	form := tview.NewForm().
 		AddInputField("Permissions (octal)", currentMode, 10, nil, nil).
 		AddInputField("Propriétaire", currentOwner, 15, nil, nil).
 		AddInputField("Groupe", currentGroup, 15, nil, nil)
 
-	if file.IsDir {
+	if item.IsDir {
 		form.AddCheckbox("Récursif (-R)", false, nil)
 	}
 
@@ -339,7 +351,7 @@ func (e *EditorApp) showChmodDialog() {
 		newGroup := form.GetFormItem(2).(*tview.InputField).GetText()
 
 		isRecursive := false
-		if file.IsDir {
+		if item.IsDir {
 			isRecursive = form.GetFormItem(3).(*tview.Checkbox).IsChecked()
 		}
 
@@ -353,11 +365,11 @@ func (e *EditorApp) showChmodDialog() {
 		var errChmod, errChown error
 
 		if isRecursive {
-			errChmod = vfs.ChmodRecursive(ctx, e.FileSystem, path, os.FileMode(newMode))
-			errChown = vfs.ChownRecursive(ctx, e.FileSystem, path, newOwner, newGroup)
+			errChmod = vfs.ChmodRecursive(ctx, p.FileSystem, path, os.FileMode(newMode))
+			errChown = vfs.ChownRecursive(ctx, p.FileSystem, path, newOwner, newGroup)
 		} else {
-			errChmod = e.FileSystem.Chmod(ctx, path, os.FileMode(newMode))
-			errChown = e.FileSystem.Chown(ctx, path, newOwner, newGroup)
+			errChmod = p.FileSystem.Chmod(ctx, path, os.FileMode(newMode))
+			errChown = p.FileSystem.Chown(ctx, path, newOwner, newGroup)
 		}
 
 		if errChmod != nil {
@@ -366,29 +378,29 @@ func (e *EditorApp) showChmodDialog() {
 			e.updateStatusTemp(fmt.Sprintf("[red]Erreur chown: %v", errChown))
 		} else {
 			e.updateStatusTemp("[green]Propriétés modifiées avec succès")
-			e.refreshFileList()
+			e.refreshPanel(p)
 		}
 
 		e.Pages.RemovePage("chmod")
-		e.App.SetFocus(e.FileList)
+		e.App.SetFocus(p.List)
 	})
 
 	form.AddButton("Annuler", func() {
 		e.Pages.RemovePage("chmod")
-		e.App.SetFocus(e.FileList)
+		e.App.SetFocus(p.List)
 	})
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
 			e.Pages.RemovePage("chmod")
-			e.App.SetFocus(e.FileList)
+			e.App.SetFocus(p.List)
 			return nil
 		}
 		return event
 	})
 
 	form.SetBorder(true).
-		SetTitle(fmt.Sprintf(" Propriétés: %s ", file.Name)).
+		SetTitle(fmt.Sprintf(" Propriétés: %s ", item.Name)).
 		SetTitleAlign(tview.AlignCenter)
 
 	e.showCenteredDialog("chmod", form, 55, 15)

@@ -6,50 +6,56 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/EducLecomte/go_hollow_project/internal/utils"
 	"github.com/EducLecomte/go_hollow_project/internal/vfs"
 )
 
-// createFile crée un nouveau fichier vide dans le répertoire courant et l'ouvre dans l'éditeur.
+// createFile crée un nouveau fichier vide dans le répertoire du panneau actif et l'ouvre dans l'éditeur.
 func (e *EditorApp) createFile(name string) {
-	path := filepath.Join(e.CurrentDir, name)
-	// On écrit un fichier vide
-	err := e.FileSystem.Write(context.Background(), path, strings.NewReader(""))
+	p := e.ActivePanel
+	path := filepath.Join(p.CurrentDir, name)
+
+	err := p.FileSystem.Write(context.Background(), path, strings.NewReader(""))
 	if err != nil {
 		e.updateStatus(fmt.Sprintf("[red]Erreur création: %v", err))
 		return
 	}
-	e.refreshFileList()
+	e.refreshPanel(p)
 	e.openFile(path, true)
 	e.updateStatus(fmt.Sprintf("[green]Fichier créé: %s", name))
 }
 
-// createDir crée un nouveau répertoire dans le répertoire courant.
+// createDir crée un nouveau répertoire dans le répertoire du panneau actif.
 func (e *EditorApp) createDir(name string) {
-	path := filepath.Join(e.CurrentDir, name)
-	err := e.FileSystem.Mkdir(context.Background(), path)
+	p := e.ActivePanel
+	path := filepath.Join(p.CurrentDir, name)
+
+	err := p.FileSystem.Mkdir(context.Background(), path)
 	if err != nil {
 		e.updateStatus(fmt.Sprintf("[red]Erreur dossier: %v", err))
 		return
 	}
-	e.refreshFileList()
+	e.refreshPanel(p)
 	e.updateStatus(fmt.Sprintf("[green]Dossier créé: %s", name))
 }
 
-// prepareCopyFile mémorise le chemin de l'élément à copier pour une action de collage ultérieure.
+// prepareCopyFile mémorise le chemin et le système de fichiers pour une action de collage ultérieure.
 func (e *EditorApp) prepareCopyFile(path string) {
 	e.CopiedPath = path
+	e.CopiedFS = e.ActivePanel.FileSystem
 	e.updateStatusTemp(fmt.Sprintf("Élément prêt à copier: %s", filepath.Base(path)))
 }
 
-// pasteFile copie l'élément précédemment mémorisé dans le répertoire courant, en gérant les doublons de noms.
+// pasteFile copie l'élément mémorisé dans le répertoire du panneau actif en gérant les doublons et les VFS différents.
 func (e *EditorApp) pasteFile() {
 	if e.CopiedPath == "" {
 		e.updateStatusTemp("[red]Rien à coller")
 		return
 	}
 
+	p := e.ActivePanel
 	baseName := filepath.Base(e.CopiedPath)
 	ext := filepath.Ext(baseName)
 	nameWithoutExt := strings.TrimSuffix(baseName, ext)
@@ -59,7 +65,7 @@ func (e *EditorApp) pasteFile() {
 
 	for {
 		exists := false
-		for _, f := range e.CurrentFiles {
+		for _, f := range p.CurrentFiles {
 			if f.Name == finalName {
 				exists = true
 				break
@@ -76,83 +82,162 @@ func (e *EditorApp) pasteFile() {
 		counter++
 	}
 
-	dst := filepath.Join(e.CurrentDir, finalName)
+	dst := filepath.Join(p.CurrentDir, finalName)
 
-	err := e.FileSystem.Copy(context.Background(), e.CopiedPath, dst)
+	var err error
+	if e.CopiedFS != nil && e.CopiedFS != p.FileSystem {
+		err = vfs.CopyRecursiveBetweenVFS(context.Background(), e.CopiedFS, p.FileSystem, e.CopiedPath, dst)
+	} else {
+		err = p.FileSystem.Copy(context.Background(), e.CopiedPath, dst)
+	}
+
 	if err != nil {
 		e.updateStatusTemp(fmt.Sprintf("[red]Erreur collage: %v", err))
 		return
 	}
 
-	e.refreshFileList()
+	e.refreshPanel(p)
 	e.updateStatusTemp(fmt.Sprintf("[green]Élément collé: %s", finalName))
 }
 
-// deleteElement supprime définitivement l'élément (fichier ou dossier) situé au chemin indiqué.
+// deleteElement supprime définitivement l'élément situé au chemin indiqué sur le panneau actif.
 func (e *EditorApp) deleteElement(path string) {
-	err := e.FileSystem.Remove(context.Background(), path)
+	p := e.ActivePanel
+	err := p.FileSystem.Remove(context.Background(), path)
 	if err != nil {
 		e.updateStatus(fmt.Sprintf("[red]Erreur suppression: %v", err))
 		return
 	}
-	e.refreshFileList()
+	e.refreshPanel(p)
 	e.updateStatus(fmt.Sprintf("[green]Supprimé: %s", filepath.Base(path)))
 }
 
-// saveLastDir persiste le chemin du répertoire courant dans un fichier temporaire pour permettre la synchronisation du shell à la fermeture.
+// saveLastDir persiste le chemin du répertoire courant local pour synchroniser le shell à la fermeture.
 func (e *EditorApp) saveLastDir() {
 	path := fmt.Sprintf("/tmp/hollow_cwd_%s", os.Getenv("USER"))
-	_ = os.WriteFile(path, []byte(e.CurrentDir), 0644)
+	dir := e.ActivePanel.CurrentDir
+	if e.ActivePanel.IsRemote() {
+		dir = e.LeftPanel.CurrentDir
+	}
+	_ = os.WriteFile(path, []byte(dir), 0644)
 }
 
-// extractSelectedArchive gère l'extraction d'une archive complète ou d'un fichier spécifique vers le système de fichiers local.
-func (e *EditorApp) extractSelectedArchive() {
-	index := e.FileList.GetCurrentItem()
-	if index <= 0 || index-1 >= len(e.CurrentFiles) {
+// transferSelected transfère l'élément sélectionné vers le répertoire de l'autre panneau (F6 / Shift+F6).
+func (e *EditorApp) transferSelected(reverse bool) {
+	srcPanel := e.ActivePanel
+	dstPanel := e.InactivePanel()
+	if reverse {
+		srcPanel, dstPanel = dstPanel, srcPanel
+	}
+
+	item := srcPanel.GetSelectedItem()
+	if item == nil || item.Name == ".." {
+		e.updateStatusTemp("[yellow]Sélectionnez un fichier ou dossier valide à transférer")
 		return
 	}
-	file := e.CurrentFiles[index-1]
+
+	srcPath := filepath.Join(srcPanel.CurrentDir, item.Name)
+	dstPath := filepath.Join(dstPanel.CurrentDir, item.Name)
+
+	if srcPanel.FileSystem == dstPanel.FileSystem && srcPanel.CurrentDir == dstPanel.CurrentDir {
+		e.updateStatusTemp("[red]La source et la destination sont identiques")
+		return
+	}
+
+	// Vérification préalable de l'existence de la destination
+	go func() {
+		ctxCheck, cancelCheck := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancelCheck()
+		_, err := dstPanel.FileSystem.Stat(ctxCheck, dstPath)
+		exists := (err == nil)
+
+		e.App.QueueUpdateDraw(func() {
+			if exists {
+				e.showOverwriteConfirmation(item.Name, dstPanel.DisplayName(), func(overwrite bool) {
+					if overwrite {
+						e.executeTransfer(srcPanel, dstPanel, srcPath, dstPath, item.Name)
+					}
+				})
+			} else {
+				e.executeTransfer(srcPanel, dstPanel, srcPath, dstPath, item.Name)
+			}
+		})
+	}()
+}
+
+// executeTransfer lance la copie asynchrone entre deux panneaux avec dialogue d'attente et bouton Annuler.
+func (e *EditorApp) executeTransfer(srcPanel, dstPanel *PanelState, srcPath, dstPath, itemName string) {
+	ctx, cancel := context.WithCancel(context.Background())
+	e.showLoadingDialog("Transfert en cours",
+		fmt.Sprintf("Copie de : %s\nDe : [%s] %s\nVers : [%s] %s",
+			itemName, srcPanel.DisplayName(), srcPanel.CurrentDir, dstPanel.DisplayName(), dstPanel.CurrentDir),
+		cancel)
+
+	go func() {
+		err := vfs.CopyRecursiveBetweenVFS(ctx, srcPanel.FileSystem, dstPanel.FileSystem, srcPath, dstPath)
+
+		e.App.QueueUpdateDraw(func() {
+			e.Pages.RemovePage("loading")
+			if err != nil {
+				if err == context.Canceled {
+					e.updateStatusTemp("[yellow]Transfert annulé.")
+				} else {
+					e.updateStatusTemp(fmt.Sprintf("[red]Erreur transfert: %v", err))
+				}
+			} else {
+				e.updateStatusTemp(fmt.Sprintf("[green]Transfert réussi: %s", itemName))
+				// Rafraîchissement des deux panneaux
+				e.refreshPanel(srcPanel)
+				e.refreshPanel(dstPanel)
+			}
+		})
+	}()
+}
+
+// extractSelectedArchive extrait une archive vers le répertoire du panneau opposé.
+func (e *EditorApp) extractSelectedArchive() {
+	srcPanel := e.ActivePanel
+	dstPanel := e.InactivePanel()
+
+	item := srcPanel.GetSelectedItem()
+	if item == nil || item.Name == ".." {
+		return
+	}
 
 	var srcFS vfs.VFS
-	var dstFS vfs.VFS
 	var srcPath string
 	var destPath string
 	var destName string
+	var tempFSToClose vfs.VFS
 
-	// Détection du mode : sommes-nous DANS une archive ou en train d'en sélectionner une sur le disque ?
-	archiveFS, isInside := e.FileSystem.(*vfs.ArchiveFS)
+	_, isInside := srcPanel.FileSystem.(*vfs.ArchiveFS)
 
 	if isInside {
-		// MODE INDIVIDUEL : On extrait l'élément sélectionné vers le dossier hôte de l'archive
-		srcFS = e.FileSystem
-		dstFS = e.PreviousFS
-		srcPath = filepath.Join(e.CurrentDir, file.Name)
-
-		hostDir := filepath.Dir(archiveFS.ArchivePath)
-		destName = file.Name
-		destPath = filepath.Join(hostDir, destName)
+		// MODE INDIVIDUEL : on extrait l'élément sélectionné vers le panneau opposé
+		srcFS = srcPanel.FileSystem
+		srcPath = filepath.Join(srcPanel.CurrentDir, item.Name)
+		destName = item.Name
+		destPath = filepath.Join(dstPanel.CurrentDir, destName)
 	} else {
-		// MODE COMPLET : On extrait l'archive sélectionnée vers un dossier "_extracted"
-		if !utils.IsArchive(file.Name) {
+		// MODE COMPLET : on extrait l'archive sélectionnée vers un dossier dans le panneau opposé
+		if !utils.IsArchive(item.Name) {
 			e.updateStatusTemp("[red]L'élément sélectionné n'est pas une archive")
 			return
 		}
 
-		archivePath := filepath.Join(e.CurrentDir, file.Name)
+		archivePath := filepath.Join(srcPanel.CurrentDir, item.Name)
 
-		// Calcul du dossier de destination
-		ext := filepath.Ext(file.Name)
-		if strings.HasSuffix(strings.ToLower(file.Name), ".tar.gz") {
-			destName = strings.TrimSuffix(file.Name, ".tar.gz")
-		} else if strings.HasSuffix(strings.ToLower(file.Name), ".tgz") {
-			destName = strings.TrimSuffix(file.Name, ".tgz")
+		ext := filepath.Ext(item.Name)
+		if strings.HasSuffix(strings.ToLower(item.Name), ".tar.gz") {
+			destName = strings.TrimSuffix(item.Name, ".tar.gz")
+		} else if strings.HasSuffix(strings.ToLower(item.Name), ".tgz") {
+			destName = strings.TrimSuffix(item.Name, ".tgz")
 		} else {
-			destName = strings.TrimSuffix(file.Name, ext)
+			destName = strings.TrimSuffix(item.Name, ext)
 		}
 		destName += "_extracted"
-		destPath = filepath.Join(e.CurrentDir, destName)
+		destPath = filepath.Join(dstPanel.CurrentDir, destName)
 
-		// Création d'un FS temporaire pour lire l'archive
 		ctxTemp, cancelTemp := context.WithCancel(context.Background())
 		tempFS, err := vfs.NewArchiveFS(ctxTemp, archivePath)
 		if err != nil {
@@ -160,19 +245,21 @@ func (e *EditorApp) extractSelectedArchive() {
 			e.updateStatusTemp(fmt.Sprintf("[red]Erreur ouverture archive: %v", err))
 			return
 		}
-		// On utilisera ce FS pour l'extraction
 		srcFS = tempFS
-		dstFS = e.FileSystem // On est sur le LocalFS
 		srcPath = "/"
+		tempFSToClose = tempFS
 		defer cancelTemp()
-		defer tempFS.Close()
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	e.showLoadingDialog("Extraction", fmt.Sprintf("Extraction de %s...", file.Name), cancel)
+	e.showLoadingDialog("Extraction", fmt.Sprintf("Extraction de %s vers [%s]...", item.Name, dstPanel.DisplayName()), cancel)
 
 	go func() {
-		err := vfs.CopyRecursiveBetweenVFS(ctx, srcFS, dstFS, srcPath, destPath)
+		if tempFSToClose != nil {
+			defer tempFSToClose.Close()
+		}
+
+		err := vfs.CopyRecursiveBetweenVFS(ctx, srcFS, dstPanel.FileSystem, srcPath, destPath)
 
 		e.App.QueueUpdateDraw(func() {
 			e.Pages.RemovePage("loading")
@@ -183,10 +270,8 @@ func (e *EditorApp) extractSelectedArchive() {
 					e.updateStatusTemp(fmt.Sprintf("[red]Erreur extraction: %v", err))
 				}
 			} else {
-				if !isInside {
-					e.refreshFileList()
-				}
-				e.updateStatusTemp(fmt.Sprintf("[green]Extraction réussie: %s", destName))
+				e.refreshPanel(dstPanel)
+				e.updateStatusTemp(fmt.Sprintf("[green]Extraction réussie vers %s: %s", dstPanel.DisplayName(), destName))
 			}
 		})
 	}()

@@ -82,7 +82,7 @@ func (e *EditorApp) showFuzzyFinder() {
 			return nil
 		case tcell.KeyEscape:
 			e.Pages.RemovePage("fuzzy")
-			e.App.SetFocus(e.FileList)
+			e.App.SetFocus(e.ActivePanel.List)
 			return nil
 		}
 		return event
@@ -127,7 +127,7 @@ func (e *EditorApp) scanFiles(dir string, results *[]string) {
 		return
 	}
 
-	files, err := e.FileSystem.List(context.Background(), dir)
+	files, err := e.ActivePanel.FileSystem.List(context.Background(), dir)
 	if err != nil {
 		return
 	}

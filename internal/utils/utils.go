@@ -8,20 +8,31 @@ import (
 )
 
 const (
-	HelpMsgDefault = "[yellow]F1:[white] Aide | [yellow]F3:[white] FTP/SFTP | [yellow]F5:[white] Droits | [yellow]F7:[white] Créer | [yellow]F9:[white] Extraire | [yellow]Ctrl+F:[white] Finder | [yellow]Ctrl+D:[white] Fav"
+	HelpMsgDefault = "[yellow]F1:[white] Aide | [yellow]F3:[white] FTP/SFTP | [yellow]F5:[white] Droits | [yellow]F6:[white] Transfert | [yellow]F7:[white] Créer | [yellow]F9:[white] Extraire | [yellow]Suppr:[white] Suppr | [yellow]Tab:[white] Visualiseur"
+	HelpMsgDual    = "[yellow]F1:[white] Aide | [yellow]F5:[white] Droits | [yellow]F6:[white] Transférer | [yellow]F7:[white] Créer | [yellow]F9:[white] Extraire | [yellow]Tab:[white] Panneau | [yellow]Suppr:[white] Suppr | [yellow]Esc:[white] Quitter"
 	HelpMsgEdit    = "[yellow]F1:[white] Aide | [yellow]Ctrl+S:[white] Sauver | [yellow]Ctrl+F:[white] Chercher | [yellow]Ctrl+K/U:[white] C/V | [yellow]Esc:[white] Quitter"
-	HelpMsgView    = "[yellow]F1:[white] Aide | [yellow]TAB/S-TAB:[white] Cycle | [yellow]Ctrl+X:[white] Quitter | [yellow]Flèches:[white] Défiler"
+	HelpMsgView    = "[yellow]F1:[white] Aide | [yellow]TAB/S-TAB:[white] Retour | [yellow]Ctrl+X:[white] Quitter | [yellow]Flèches:[white] Défiler"
 	HelpMsgArchive = "[yellow]F1:[white] Aide | [yellow]Entrée:[white] Aperçu | [yellow]F9:[white] Extraire | [yellow]..:[white] Sortir"
 	HelpMsgFiles   = HelpMsgDefault
 
 	HelpContentExplorer = `
- [yellow]Navigation & Panneaux[white]
- ----------------------
+ [yellow]Navigation & Double Panneau[white]
+ ---------------------------
  F1          : Afficher cette aide
  F3          : Connexion FTP / SFTP
  F5          : Changer les permissions (Chmod)
+ F6          : Transférer vers l'autre panneau
+ Shift + F6  : Transférer depuis l'autre panneau
  F7          : Créer un fichier ou un dossier
- F9          : Extraire l'archive (zip, tar.gz...)
+ F9          : Extraire l'archive vers l'autre panneau
+
+ [yellow]Panneaux & Navigation[white]
+ ---------------------------
+ Tab         : Basculer entre panneau gauche et droit
+ Ctrl + Q    : Activer/Désactiver aperçu (Quick View)
+ Entrée      : Ouvrir un fichier / Entrer dans un dossier
+ ..          : Remonter au dossier parent
+ Suppr       : Supprimer l'élément sélectionné
  
  [yellow]Explorateur & Fichiers[white]
  ----------------------
@@ -30,9 +41,6 @@ const (
  Ctrl + F    : Recherche Globale (Fuzzy Finder sur tout le disque)
  Ctrl + K/U  : Copier / Coller (mémorisation de chemin)
  Ctrl + X    : Quitter l'application
- Entrée      : Ouvrir un fichier / Entrer dans un dossier
- ..          : Remonter au dossier parent
- Suppr       : Supprimer l'élément sélectionné
 
  [yellow]Barre des Favoris (Active)[white]
  --------------------------
@@ -61,9 +69,9 @@ const (
  F1          : Afficher cette aide
  Ctrl + F    : Rechercher (Entrée pour suivant)
  Ctrl + K    : Couper la ligne (Nano style, concatène si répété)
-	 Ctrl + S    : Sauvegarder les modifications
+ Ctrl + S    : Sauvegarder les modifications
  Ctrl + U    : Coller le texte ou le bloc coupé
-	 Ctrl + X    : Fermer l'éditeur (confirmation si modifié)
+ Ctrl + X    : Fermer l'éditeur (confirmation si modifié)
  
  [yellow]Déplacement[white]
  -----------

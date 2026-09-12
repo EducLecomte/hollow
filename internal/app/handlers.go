@@ -14,7 +14,7 @@ func (e *EditorApp) setupHandlers() {
 			tcell.KeyCtrlS: true, tcell.KeyCtrlF: true, tcell.KeyCtrlD: true,
 			tcell.KeyCtrlK: true, tcell.KeyCtrlU: true, tcell.KeyCtrlB: true,
 			tcell.KeyCtrlV: true, tcell.KeyCtrlX: true, tcell.KeyCtrlE: true,
-			tcell.KeyCtrlN: true,
+			tcell.KeyCtrlN: true, tcell.KeyCtrlT: true,
 			tcell.KeyTab:   true, tcell.KeyEnter: true,
 			tcell.KeyBackspace: true, tcell.KeyBackspace2: true,
 		}
@@ -24,35 +24,42 @@ func (e *EditorApp) setupHandlers() {
 			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
 				e.Pages.HasPage("new_element") ||
 				e.Pages.HasPage("delete") || e.Pages.HasPage("save_confirm") ||
-				e.Pages.HasPage("ftp") {
+				e.Pages.HasPage("ftp") || e.Pages.HasPage("overwrite_confirm") {
 				return event
 			}
 
 			// Détection du contexte pour l'aide
 			helpContent := utils.HelpContentExplorer
-			if _, ok := e.FileSystem.(*vfs.ArchiveFS); ok {
-				helpContent = utils.HelpContentArchive
+			if e.ActivePanel != nil {
+				if _, ok := e.ActivePanel.FileSystem.(*vfs.ArchiveFS); ok {
+					helpContent = utils.HelpContentArchive
+				}
 			}
 			e.showHelp(helpContent)
 			return nil
 		case tcell.KeyF3:
 			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
 				e.Pages.HasPage("new_element") ||
-				e.Pages.HasPage("delete") || e.Pages.HasPage("ftp") {
+				e.Pages.HasPage("delete") || e.Pages.HasPage("ftp") ||
+				e.Pages.HasPage("overwrite_confirm") {
 				return event
 			}
 			e.showFTPDialog()
 			return nil
 		case tcell.KeyF9:
 			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
-				e.Pages.HasPage("new_element") || e.Pages.HasPage("delete") ||
-				e.Pages.HasPage("save_confirm") || e.Pages.HasPage("ftp") {
+				e.Pages.HasPage("new_element") ||
+				e.Pages.HasPage("delete") || e.Pages.HasPage("save_confirm") ||
+				e.Pages.HasPage("ftp") || e.Pages.HasPage("overwrite_confirm") {
 				return event
 			}
 			e.extractSelectedArchive()
 			return nil
 		case tcell.KeyCtrlB:
 			e.toggleFavorites()
+			return nil
+		case tcell.KeyCtrlT:
+			e.toggleTransferMode()
 			return nil
 		case tcell.KeyCtrlF:
 			e.showFuzzyFinder()

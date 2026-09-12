@@ -6,7 +6,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
-// setupViewerHandlers gère les entrées clavier pour la zone de visualisation (lecture seule)
+// setupViewerHandlers gère les entrées clavier pour la zone de visualisation (lecture seule).
 func (e *EditorApp) setupViewerHandlers() {
 	e.Viewer.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		key := event.Key()
@@ -14,24 +14,30 @@ func (e *EditorApp) setupViewerHandlers() {
 		// Aide contextuelle F1
 		if key == tcell.KeyF1 {
 			helpContent := utils.HelpContentExplorer
-			if _, ok := e.FileSystem.(*vfs.ArchiveFS); ok {
-				helpContent = utils.HelpContentArchive
+			if e.ActivePanel != nil {
+				if _, ok := e.ActivePanel.FileSystem.(*vfs.ArchiveFS); ok {
+					helpContent = utils.HelpContentArchive
+				}
 			}
 			e.showHelp(helpContent)
 			return nil
 		}
 
-		// Navigation (Tab ou Ctrl+X) vers l'explorateur ou les favoris
+		// Navigation vers l'explorateur ou les favoris
 		if key == tcell.KeyTab {
 			if e.ShowFavs {
 				e.App.SetFocus(e.FavList)
 			} else {
-				e.App.SetFocus(e.FileList)
+				e.App.SetFocus(e.LeftPanel.List)
 			}
 			return nil
 		}
 		if key == tcell.KeyBacktab {
-			e.App.SetFocus(e.FileList)
+			e.App.SetFocus(e.LeftPanel.List)
+			return nil
+		}
+		if key == tcell.KeyF6 || key == tcell.KeyCtrlT {
+			e.toggleTransferMode()
 			return nil
 		}
 		if key == tcell.KeyCtrlX {
@@ -39,7 +45,6 @@ func (e *EditorApp) setupViewerHandlers() {
 			return nil
 		}
 
-		// Le TextView (Viewer) gère nativement les flèches pour le défilement
 		return event
 	})
 }

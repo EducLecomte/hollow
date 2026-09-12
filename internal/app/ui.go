@@ -3,9 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
-	"os" // Utilisé pour os.Stat afin de vérifier si le chemin est un fichier ou un répertoire
+	"io"
+	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/EducLecomte/go_hollow_project/internal/utils"
@@ -20,24 +20,24 @@ type EditorApp struct {
 	App   *tview.Application
 	Pages *tview.Pages
 
-	// Composants de l'interface principale
-	PathBar     *tview.TextView
-	FileList    *tview.List
-	FileSizeBox *tview.TextView
-	Viewer      *tview.TextView
-	Status      *tview.TextView
-	FavList     *tview.List // Barre latérale des favoris
+	// Panneaux
+	LeftPanel   *PanelState // Panneau local principal
+	RightPanel  *PanelState // Panneau distant (FTP/SFTP) ou secondaire en mode transfert
+	ActivePanel *PanelState // Panneau sous focus
 
-	// Système de fichiers et Navigation
-	FileSystem   vfs.VFS
-	CurrentDir   string
-	CurrentFiles []vfs.FileInfo
-	PreviousFS   vfs.VFS
-	PreviousDir  string
+	// Mode d'affichage
+	TransferMode bool // Mode transfert local activé manuellement
+
+	// Composants de l'interface
+	PathBar *tview.TextView // Barre de chemin supérieure
+	Viewer  *tview.TextView // Visualiseur de fichier par défaut
+	Status  *tview.TextView // Barre d'état inférieure
+	FavList *tview.List     // Barre latérale des favoris
 
 	// État de l'éditeur et Presse-papiers
 	FilePath      string
 	CopiedPath    string
+	CopiedFS      vfs.VFS
 	Clipboard     string
 	LastSearch    string
 	LastSearchPos int
@@ -48,19 +48,10 @@ type EditorApp struct {
 
 	// Gestion de l'asynchronisme
 	previewCancel context.CancelFunc
-
-	// Chemin du fichier qui doit être sélectionné initialement dans l'explorateur
-	initialFileSelected string
 }
 
 // NewEditorApp initialise une nouvelle instance de l'application Hollow.
-// Elle accepte un paramètre initialPath qui permet de démarrer l'application directement
-// sur un dossier spécifique ou d'ouvrir un fichier dès le lancement.
 func NewEditorApp(initialPath string) *EditorApp {
-	// Définition du système de fichiers local par défaut
-	localFS := &vfs.LocalFS{}
-	
-	// Résolution du répertoire de travail courant (répertoire de base par défaut)
 	wd, err := filepath.Abs(".")
 	if err != nil {
 		wd = "/"
@@ -69,26 +60,19 @@ func NewEditorApp(initialPath string) *EditorApp {
 	var fileToOpen string
 	var fileSelected string
 
-	// Si un chemin initial a été fourni en paramètre de lancement
 	if initialPath != "" {
-		// Résolution de son chemin absolu
 		absPath, err := filepath.Abs(initialPath)
 		if err == nil {
 			info, err := os.Stat(absPath)
 			if err == nil {
 				if info.IsDir() {
-					// Si c'est un dossier, on met à jour le répertoire de travail courant
 					wd = absPath
 				} else {
-					// Si c'est un fichier existant, on se place dans son répertoire parent
-					// et on enregistre son chemin pour l'ouvrir immédiatement
 					wd = filepath.Dir(absPath)
 					fileToOpen = absPath
 					fileSelected = filepath.Base(absPath)
 				}
 			} else {
-				// Si le fichier/dossier n'existe pas, on suppose que l'utilisateur souhaite créer/éditer un nouveau fichier.
-				// On se place donc dans le dossier parent présumé et on enregistre le chemin du fichier.
 				wd = filepath.Dir(absPath)
 				fileToOpen = absPath
 				fileSelected = filepath.Base(absPath)
@@ -96,27 +80,30 @@ func NewEditorApp(initialPath string) *EditorApp {
 		}
 	}
 
+	leftPanel := NewPanelState("left", wd, &vfs.LocalFS{})
+	rightPanel := NewPanelState("right", wd, &vfs.LocalFS{})
+	leftPanel.initialFileSelected = fileSelected
+
 	e := &EditorApp{
-		App:                 tview.NewApplication(),
-		PathBar:             tview.NewTextView(),
-		FileList:            tview.NewList(),
-		FileSizeBox:         tview.NewTextView(),
-		Viewer:              tview.NewTextView(),
-		Status:              tview.NewTextView(),
-		FavList:             tview.NewList(),
-		Pages:               tview.NewPages(),
-		CurrentDir:          wd,
-		FileSystem:          localFS,
-		initialFileSelected: fileSelected, // Mémorise le nom du fichier pour le sélectionner dans la liste
+		App:          tview.NewApplication(),
+		Pages:        tview.NewPages(),
+		LeftPanel:    leftPanel,
+		RightPanel:   rightPanel,
+		ActivePanel:  leftPanel,
+		PathBar:      tview.NewTextView(),
+		Viewer:       tview.NewTextView(),
+		Status:       tview.NewTextView(),
+		FavList:      tview.NewList(),
+		TransferMode: false,
 	}
 
 	e.loadFavorites()
 	e.setupUI()
 	e.setupFavHandlers()
 	e.setupHandlers()
-	e.refreshFileList()
 
-	// Si un fichier doit être ouvert au lancement, on appelle la fonction d'ouverture de fichier
+	e.refreshPanel(e.LeftPanel)
+
 	if fileToOpen != "" {
 		e.openFile(fileToOpen, false)
 	}
@@ -124,121 +111,172 @@ func NewEditorApp(initialPath string) *EditorApp {
 	return e
 }
 
-// setupUI configure la disposition des widgets, les styles et les comportements de base de l'interface.
+// IsDualPane indique si l'interface doit afficher le double panneau
+// (connecté à un serveur distant FTP/SFTP ou en mode transfert manuel).
+func (e *EditorApp) IsDualPane() bool {
+	return e.TransferMode || (e.RightPanel != nil && e.RightPanel.IsRemote()) || (e.LeftPanel != nil && e.LeftPanel.IsRemote())
+}
+
+// InactivePanel renvoie le panneau opposé au panneau actif.
+func (e *EditorApp) InactivePanel() *PanelState {
+	if e.ActivePanel == e.LeftPanel {
+		return e.RightPanel
+	}
+	return e.LeftPanel
+}
+
+// SwitchActivePanel bascule le focus entre le panneau gauche et le panneau droit en mode double panneau.
+func (e *EditorApp) SwitchActivePanel() {
+	if !e.IsDualPane() {
+		return
+	}
+
+	if e.ActivePanel == e.LeftPanel {
+		e.ActivePanel = e.RightPanel
+	} else {
+		e.ActivePanel = e.LeftPanel
+	}
+
+	e.App.SetFocus(e.ActivePanel.List)
+	e.updatePanelFocus()
+}
+
+// updatePanelFocus met à jour les bordures et titres des panneaux ainsi que la barre d'état.
+func (e *EditorApp) updatePanelFocus() {
+	e.LeftPanel.UpdateTitle(e.ActivePanel == e.LeftPanel)
+	e.RightPanel.UpdateTitle(e.ActivePanel == e.RightPanel)
+
+	if e.IsDualPane() {
+		e.updateStatus(utils.HelpMsgDual)
+	} else {
+		if e.ActivePanel != nil && e.ActivePanel.IsArchive() {
+			e.updateStatus(utils.HelpMsgArchive)
+		} else {
+			e.updateStatus(utils.HelpMsgDefault)
+		}
+	}
+}
+
+// toggleTransferMode active ou désactive le mode double panneau local (mode transfert).
+func (e *EditorApp) toggleTransferMode() {
+	e.TransferMode = !e.TransferMode
+	if e.TransferMode {
+		if e.RightPanel.CurrentDir == "" {
+			e.RightPanel.CurrentDir = e.LeftPanel.CurrentDir
+		}
+		e.refreshPanel(e.RightPanel)
+		e.rebuildMainLayout()
+		e.updatePanelFocus()
+		e.updateStatusTemp("[green]Mode Transfert activé (F6: transférer | Tab: basculer | Esc: fermer)")
+	} else {
+		e.ActivePanel = e.LeftPanel
+		e.rebuildMainLayout()
+		e.updatePanelFocus()
+		e.App.SetFocus(e.LeftPanel.List)
+		e.triggerViewerPreviewForCurrentItem()
+		e.updateStatusTemp("[yellow]Mode Transfert désactivé (visualiseur restauré)")
+	}
+}
+
+// setupPanelUI configure les comportements d'un panneau.
+func (e *EditorApp) setupPanelUI(p *PanelState) {
+	p.List.SetSelectedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
+		e.handleFileSelection(p, index)
+	})
+
+	p.List.SetFocusFunc(func() {
+		e.ActivePanel = p
+		e.updatePanelFocus()
+		if e.PathBar != nil {
+			e.PathBar.SetText(fmt.Sprintf(" Path: %s", utils.ShortenPath(p.CurrentDir)))
+		}
+	})
+
+	isUpdatingList := false
+	p.List.SetChangedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
+		if index == 0 {
+			p.UpdateInfoBox(nil)
+			if !e.IsDualPane() {
+				e.Viewer.SetText("").SetTitle(" Visualiseur ")
+			}
+			return
+		}
+
+		if p.CurrentFiles == nil || index-1 >= len(p.CurrentFiles) {
+			return
+		}
+
+		file := p.CurrentFiles[index-1]
+		p.UpdateInfoBox(&file)
+
+		// En mode par défaut, prévisualisation en direct dans le visualiseur !
+		if !e.IsDualPane() {
+			e.triggerViewerPreview(p, file)
+		}
+
+		if isUpdatingList {
+			return
+		}
+		isUpdatingList = true
+		defer func() { isUpdatingList = false }()
+		p.RefreshStyle(index)
+	})
+}
+
+// triggerViewerPreview lance la prévisualisation asynchrone dans le visualiseur (mode par défaut).
+func (e *EditorApp) triggerViewerPreview(p *PanelState, file vfs.FileInfo) {
+	if e.previewCancel != nil {
+		e.previewCancel()
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	e.previewCancel = cancel
+
+	path := filepath.Join(p.CurrentDir, file.Name)
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+
+		if file.IsDir {
+			e.previewDirectory(ctx, p.FileSystem, path)
+		} else {
+			e.previewFile(ctx, p.FileSystem, path)
+		}
+	}()
+}
+
+// triggerViewerPreviewForCurrentItem rafraîchit le visualiseur avec l'élément courant du panneau gauche.
+func (e *EditorApp) triggerViewerPreviewForCurrentItem() {
+	if e.LeftPanel == nil || e.IsDualPane() {
+		return
+	}
+	item := e.LeftPanel.GetSelectedItem()
+	if item == nil {
+		e.Viewer.SetText("").SetTitle(" Visualiseur ")
+		return
+	}
+	e.triggerViewerPreview(e.LeftPanel, *item)
+}
+
+// setupUI configure la disposition des composants et styles.
 func (e *EditorApp) setupUI() {
 	e.PathBar.SetDynamicColors(true).
 		SetTextAlign(tview.AlignLeft).
 		SetTextColor(tcell.ColorBlack).
 		SetBackgroundColor(tcell.ColorGreen)
 
-	e.FileList.SetBorder(true).SetTitle(" Exploreur ").SetBorderColor(tcell.ColorYellow)
-	e.FileList.ShowSecondaryText(false)
-	e.FileList.SetSelectedBackgroundColor(tcell.ColorWhite).
-		SetSelectedTextColor(tcell.ColorBlack)
+	e.setupPanelUI(e.LeftPanel)
+	e.setupPanelUI(e.RightPanel)
 
-	e.FileList.SetSelectedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
-		e.handleFileSelection(index)
-	})
-
-	// Gestion dynamique de la couleur des dossiers et mise à jour de l'encart d'info
-	isUpdatingList := false
-	// Mise à jour asynchrone du visualiseur pour éviter les blocages (surtout en FTP)
-	e.FileList.SetChangedFunc(func(index int, mainText string, secondaryText string, shortcut rune) {
-		// 1. Annulation de la prévisualisation précédente
-		if e.previewCancel != nil {
-			e.previewCancel()
-		}
-
-		if index == 0 {
-			e.FileSizeBox.SetText("[gray]Parent Directory")
-			e.Viewer.SetText("").SetTitle(" Visualiseur ")
-			return
-		}
-
-		if e.CurrentFiles == nil || index-1 >= len(e.CurrentFiles) {
-			return
-		}
-
-		ctx, cancel := context.WithCancel(context.Background())
-		e.previewCancel = cancel
-
-		file := e.CurrentFiles[index-1]
-		modTimeStr := file.ModTime.Format("2006-01-02 15:04")
-		path := filepath.Join(e.CurrentDir, file.Name)
-
-		// Mise à jour immédiate des infos basiques (synchrone)
-		if file.IsDir {
-			e.FileSizeBox.SetText(fmt.Sprintf("[green]Type: [white]Dossier\n[green]Date: [white]%s\n[green]Droits: [white]%s\n[green]Proprio: [white]%s\n[green]Groupe: [white]%s", modTimeStr, file.Permissions, file.Owner, file.Group))
-		} else {
-			e.FileSizeBox.SetText(fmt.Sprintf("[green]Taille: [white]%s\n[green]Date: [white]%s\n[green]Droits: [white]%s\n[green]Proprio: [white]%s\n[green]Groupe: [white]%s", utils.FormatSize(file.Size), modTimeStr, file.Permissions, file.Owner, file.Group))
-		}
-
-		// Prévisualisation asynchrone (E/S et Coloration)
-		go func() {
-			// Petite pause pour éviter de charger inutilement lors d'un défilement rapide
-			time.Sleep(100 * time.Millisecond)
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
-			if file.IsDir {
-				e.previewDirectory(ctx, path)
-			} else {
-				e.previewFile(ctx, path)
-			}
-		}()
-
-		// 2. Gestion dynamique de la couleur des dossiers pour le contraste
-		if isUpdatingList {
-			return
-		}
-		isUpdatingList = true
-		defer func() { isUpdatingList = false }()
-
-		for i := 0; i < e.FileList.GetItemCount(); i++ {
-			m, s := e.FileList.GetItemText(i)
-			if !strings.HasSuffix(m, "/") && !strings.HasPrefix(m, "[#ff8c00]") {
-				continue
-			}
-
-			// Nettoyage du nom
-			name := strings.TrimPrefix(m, "[#ff8c00]")
-			if strings.HasSuffix(name, "/") {
-				if i == index {
-					// Sélectionné : pas de tag pour être noir sur blanc
-					if m != name {
-						e.FileList.SetItemText(i, name, s)
-					}
-				} else {
-					// Non sélectionné : orange
-					if !strings.HasPrefix(m, "[#ff8c00]") {
-						e.FileList.SetItemText(i, "[#ff8c00]"+name, s)
-					}
-				}
-			}
-		}
-	})
-
-	e.FileList.SetBorder(true).SetTitle(" Explorateur ").SetBorderColor(tcell.ColorWhite)
-	e.FileList.SetSelectedBackgroundColor(tcell.ColorWhite).SetSelectedTextColor(tcell.ColorBlack)
-	e.FileList.ShowSecondaryText(false)
-
-	e.FileList.SetFocusFunc(func() {
-		e.FileList.SetBorderColor(tcell.ColorYellow)
-		e.updateStatus(utils.HelpMsgFiles)
-	})
-	e.FileList.SetBlurFunc(func() {
-		e.FileList.SetBorderColor(tcell.ColorWhite)
-	})
-
-	// Encart pour le poids du fichier
-	e.FileSizeBox.SetBorder(true).SetTitle(" Info ")
-	e.FileSizeBox.SetDynamicColors(true).SetTextAlign(tview.AlignCenter)
-
+	// Visualiseur de fichier par défaut
 	e.Viewer.SetBorder(true).SetTitle(" Visualiseur ").SetBorderColor(tcell.ColorWhite)
-	e.Viewer.SetDynamicColors(true).SetRegions(true) // Active le support des couleurs ANSI/Tags
+	e.Viewer.SetDynamicColors(true).SetRegions(true)
+	e.Viewer.SetWrap(true)
 	e.Viewer.SetFocusFunc(func() {
 		e.Viewer.SetBorderColor(tcell.ColorYellow)
 		e.updateStatus(utils.HelpMsgView)
@@ -246,13 +284,12 @@ func (e *EditorApp) setupUI() {
 	e.Viewer.SetBlurFunc(func() {
 		e.Viewer.SetBorderColor(tcell.ColorWhite)
 	})
-	e.Viewer.SetWrap(true)    // Rétablit le retour à la ligne automatique
-	e.Viewer.SetDrawFunc(nil) // Supprime la fonction de synchronisation obsolète
 
+	// Barre d'état
 	e.Status.SetDynamicColors(true).SetTextAlign(tview.AlignCenter)
 	e.updateStatus(utils.HelpMsgDefault)
 
-	// Barre latérale des favoris
+	// Barre des favoris
 	e.FavList.SetBorder(true).SetTitle(" Favoris ").SetBorderColor(tcell.ColorWhite)
 	e.FavList.SetSelectedBackgroundColor(tcell.ColorWhite).SetSelectedTextColor(tcell.ColorBlack)
 	e.FavList.ShowSecondaryText(false)
@@ -263,85 +300,84 @@ func (e *EditorApp) setupUI() {
 		e.FavList.SetBorderColor(tcell.ColorWhite)
 	})
 
-	// Layout principal avec Support de la barre latérale
+	e.updatePanelFocus()
 	e.rebuildMainLayout()
 }
 
-// rebuildMainLayout reconstruit l'interface principale avec des proportions équilibrées.
+// rebuildMainLayout reconstruit l'interface :
+// - Si IsDualPane() : Double Panneau (Gauche 50% | Droite 50%)
+// - Sinon : Mode par défaut (Explorateur à gauche | Visualiseur à droite)
 func (e *EditorApp) rebuildMainLayout() {
-	// 1. Zone de navigation (Favoris + Explorateur)
-	navHorizontalFlex := tview.NewFlex().SetDirection(tview.FlexColumn)
-	if e.ShowFavs {
-		navHorizontalFlex.AddItem(e.FavList, 0, 2, false) // Proportion 2
+	if e.IsDualPane() {
+		// MODE DOUBLE PANNEAU
+		panelsFlex := tview.NewFlex().SetDirection(tview.FlexColumn)
+
+		if e.ShowFavs {
+			panelsFlex.AddItem(e.FavList, 30, 0, false)
+		}
+
+		panelsFlex.AddItem(e.LeftPanel.Box, 0, 1, e.ActivePanel == e.LeftPanel)
+		panelsFlex.AddItem(e.RightPanel.Box, 0, 1, e.ActivePanel == e.RightPanel)
+
+		mainFlex := tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(e.PathBar, 1, 0, false).
+			AddItem(panelsFlex, 0, 1, true).
+			AddItem(e.Status, 1, 0, false)
+
+		e.Pages.AddPage("main", mainFlex, true, true)
+	} else {
+		// MODE PAR DÉFAUT (Explorateur + Visualiseur)
+		contentFlex := tview.NewFlex().SetDirection(tview.FlexColumn)
+		if e.ShowFavs {
+			contentFlex.AddItem(e.FavList, 30, 0, false)
+		}
+		contentFlex.AddItem(e.LeftPanel.Box, 0, 1, true)
+		contentFlex.AddItem(e.Viewer, 0, 2, false) // Visualiseur à droite (environ 66% de largeur)
+
+		mainFlex := tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(e.PathBar, 1, 0, false).
+			AddItem(contentFlex, 0, 1, true).
+			AddItem(e.Status, 1, 0, false)
+
+		e.Pages.AddPage("main", mainFlex, true, true)
 	}
-	navHorizontalFlex.AddItem(e.FileList, 0, 2, true) // Proportion 2
-
-	// 2. Colonne de navigation complète (Nav + Info en bas)
-	navColumn := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(navHorizontalFlex, 0, 1, true).
-		AddItem(e.FileSizeBox, 7, 0, false) // Bloc info (7 lignes pour les infos étendues + bordure)
-
-	// 3. Contenu principal (Navigation + Visualiseur)
-	contentFlex := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(navColumn, 0, 1, true).
-		AddItem(e.Viewer, 0, 2, false) // Le viewer garde une part majoritaire
-
-	// 4. Layout global (PathBar + Contenu + Status)
-	mainFlex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(e.PathBar, 1, 0, false).
-		AddItem(contentFlex, 0, 1, true).
-		AddItem(e.Status, 1, 0, false)
-
-	e.Pages.AddPage("main", mainFlex, true, true)
 }
 
-// updateStatus met à jour le texte de la barre d'état en bas de l'écran.
+// updateStatus met à jour le texte de la barre d'état.
 func (e *EditorApp) updateStatus(msg string) {
-	// On s'assure que les messages s'affichent sur une seule ligne
 	e.Status.SetText(fmt.Sprintf("[yellow]%s", msg))
 }
 
-// updateStatusTemp affiche un message temporaire dans la barre d'état et le restaure après un délai de 5 secondes.
+// updateStatusTemp affiche un message temporaire dans la barre d'état pendant 5 secondes.
 func (e *EditorApp) updateStatusTemp(msg string) {
 	e.updateStatus(msg)
 
 	go func() {
 		time.Sleep(5 * time.Second)
-		// tview n'est pas thread-safe, on utilise QueueUpdateDraw pour mettre à jour l'UI
 		e.App.QueueUpdateDraw(func() {
-			// Restauration du message d'aide selon le focus actuel
 			focus := e.App.GetFocus()
 			if focus == e.Viewer {
 				e.updateStatus(utils.HelpMsgView)
 			} else if _, ok := focus.(*tview.TextArea); ok {
 				e.updateStatus(utils.HelpMsgEdit)
 			} else {
-				// Détection du contexte pour la barre d'état
-				if _, ok := e.FileSystem.(*vfs.ArchiveFS); ok {
-					e.updateStatus(utils.HelpMsgArchive)
-				} else {
-					e.updateStatus(utils.HelpMsgFiles)
-				}
+				e.updatePanelFocus()
 			}
 		})
 	}()
 }
 
-// connectRemote initialise une connexion à un serveur distant (FTP, FTPS ou SFTP) et bascule le système de fichiers de l'application.
+// connectRemote connecte le serveur distant sur RightPanel et bascule automatiquement en double panneau.
 func (e *EditorApp) connectRemote(proto string, host string, port int, user, pass string) error {
 	var remoteFS vfs.VFS
 	var err error
 
-	// Routage vers le bon constructeur en fonction du protocole sélectionné
 	switch proto {
 	case "FTP":
-		// Connexion FTP classique (sans TLS)
 		remoteFS, err = vfs.NewFtpFS(host, port, user, pass, false)
 	case "FTPS":
-		// Connexion FTP sécurisée (avec TLS)
 		remoteFS, err = vfs.NewFtpFS(host, port, user, pass, true)
 	case "SFTP":
-		// Connexion SFTP via le protocole SSH
 		remoteFS, err = vfs.NewSftpFS(host, port, user, pass)
 	default:
 		return fmt.Errorf("protocole inconnu: %s", proto)
@@ -351,7 +387,6 @@ func (e *EditorApp) connectRemote(proto string, host string, port int, user, pas
 		return err
 	}
 
-	// Configuration du callback de statut pour notifier les événements de reconnexion dans l'UI de Hollow
 	if ftpFS, ok := remoteFS.(*vfs.FtpFS); ok {
 		ftpFS.OnStatus = func(msg string) {
 			e.App.QueueUpdateDraw(func() {
@@ -366,12 +401,53 @@ func (e *EditorApp) connectRemote(proto string, host string, port int, user, pas
 		}
 	}
 
-	// Sauvegarde du système de fichiers actuel pour permettre le retour à la vue précédente (locale)
-	e.PreviousFS = e.FileSystem
-	e.PreviousDir = e.CurrentDir
+	// La connexion distante est affectée à RightPanel
+	targetPanel := e.RightPanel
+	targetPanel.PreviousFS = targetPanel.FileSystem
+	targetPanel.PreviousDir = targetPanel.CurrentDir
 
-	e.FileSystem = remoteFS
-	e.CurrentDir = "/"
-	e.refreshFileList()
+	targetPanel.FileSystem = remoteFS
+	targetPanel.CurrentDir = "/"
+	targetPanel.RemoteLabel = fmt.Sprintf("%s (%s)", proto, host)
+
+	// Bascule automatique vers le mode double panneau
+	e.ActivePanel = targetPanel
+	e.refreshPanel(targetPanel)
+	e.rebuildMainLayout()
+	e.updatePanelFocus()
+	e.App.SetFocus(targetPanel.List)
+
 	return nil
+}
+
+// disconnectRemote ferme la connexion distante et rétablit l'affichage par défaut avec visualiseur.
+func (e *EditorApp) disconnectRemote(targetPanel *PanelState) {
+	if targetPanel == nil {
+		targetPanel = e.RightPanel
+	}
+
+	if closer, ok := targetPanel.FileSystem.(io.Closer); ok {
+		_ = closer.Close()
+	}
+
+	targetPanel.FileSystem = targetPanel.PreviousFS
+	if targetPanel.FileSystem == nil {
+		targetPanel.FileSystem = &vfs.LocalFS{}
+	}
+	targetPanel.CurrentDir = targetPanel.PreviousDir
+	if targetPanel.CurrentDir == "" {
+		wd, _ := filepath.Abs(".")
+		targetPanel.CurrentDir = wd
+	}
+	targetPanel.PreviousFS = nil
+	targetPanel.PreviousDir = ""
+	targetPanel.RemoteLabel = ""
+
+	// Retour automatique au panneau local et au visualiseur
+	e.ActivePanel = e.LeftPanel
+	e.rebuildMainLayout()
+	e.updatePanelFocus()
+	e.App.SetFocus(e.LeftPanel.List)
+	e.triggerViewerPreviewForCurrentItem()
+	e.updateStatusTemp("[yellow]Déconnecté du serveur distant (visualiseur restauré)")
 }

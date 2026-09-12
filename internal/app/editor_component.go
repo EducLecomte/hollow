@@ -108,7 +108,7 @@ func (e *EditorApp) showFullEditor(content string) {
 				e.showSaveConfirmation(textArea.GetText())
 			} else {
 				e.Pages.RemovePage("edit_screen")
-				e.App.SetFocus(e.FileList)
+				e.App.SetFocus(e.ActivePanel.List)
 			}
 			return nil
 		}
@@ -183,7 +183,7 @@ func (e *EditorApp) saveFromFullEditor(content string, onDone func()) {
 
 	go func() {
 		reader := strings.NewReader(content)
-		err := e.FileSystem.Write(ctx, e.FilePath, reader)
+		err := e.ActivePanel.FileSystem.Write(ctx, e.FilePath, reader)
 
 		e.App.QueueUpdateDraw(func() {
 			e.Pages.RemovePage("loading")
@@ -195,8 +195,10 @@ func (e *EditorApp) saveFromFullEditor(content string, onDone func()) {
 		})
 
 		if err == nil {
-			e.refreshFileList()
-			e.previewFile(context.Background(), e.FilePath)
+			e.refreshActivePanel()
+			if !e.IsDualPane() {
+				e.previewFile(context.Background(), e.ActivePanel.FileSystem, e.FilePath)
+			}
 			if onDone != nil {
 				e.App.QueueUpdateDraw(onDone)
 			}
