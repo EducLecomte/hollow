@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Hollow, l'explorateur de fichiers et l'éditeur de texte TUI écrit en Go.">
+    <title>Hollow — File work. Done well.</title>
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="fr_FR">
+    <meta property="og:site_name" content="Hollow">
+    <meta property="og:title" content="Hollow — File work. Done well.">
+    <meta property="og:description"
+        content="Un explorateur de fichiers et un éditeur de texte TUI, rapide et entièrement écrit en Go.">
+    <meta property="og:url" content="https://hollow.pedagogeek.fr/">
+    <meta property="og:image"
+        content="https://raw.githubusercontent.com/EducLecomte/hollow/main/gophers/social-preview.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Interface Hollow et gopher mckill">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Hollow — File work. Done well.">
+    <meta name="twitter:description"
+        content="Un explorateur de fichiers et un éditeur de texte TUI, rapide et entièrement écrit en Go.">
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/EducLecomte/hollow/main/social-preview.png">
+    <meta name="twitter:image:alt" content="Interface Hollow et gopher mckill">
+    <link rel="icon" type="image/png"
+        href="https://raw.githubusercontent.com/EducLecomte/hollow/main/gophers/gopher_clean.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --ink: #18201d;
+            --muted: #68736d;
+            --line: #e3e9e4;
+            --soft: #f3f8f4;
+            --green: #159c4c;
+            --dark-green: #08783a;
+            --yellow: #f9c84a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background: #fff;
+            font-family: "DM Sans", sans-serif;
+            line-height: 1.55;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        .wrap {
+            width: min(1160px, calc(100% - 48px));
+            margin: auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 26px 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font: 700 1.15rem "Space Grotesk", sans-serif;
+            text-decoration: none;
+        }
+
+        .mark {
+            display: block;
+            width: 34px;
+            height: 34px;
+            border: 1.5px solid var(--ink);
+            border-radius: 50%;
+            background: var(--soft) url("https://raw.githubusercontent.com/EducLecomte/hollow/main/gophers/gopher_clean.png") center 5% / 58px auto no-repeat;
+            box-shadow: 0 2px 5px rgba(24, 32, 29, .12);
+            overflow: hidden;
+        }
+
+        .top-link,
+        footer a {
+            color: var(--muted);
+            font-size: .9rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .top-link:hover,
+        footer a:hover {
+            color: var(--dark-green);
+        }
+
+        .hero {
+            display: grid;
+            min-height: 650px;
+            grid-template-columns: .9fr 1.1fr;
+            align-items: center;
+            gap: 52px;
+            padding: 55px 0 105px;
+        }
+
+        .eyebrow {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: var(--dark-green);
+            font-size: .75rem;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+
+        .eyebrow:before {
+            width: 28px;
+            height: 3px;
+            border-radius: 9px;
+            background: var(--green);
+            content: "";
+        }
+
+        h1,
+        h2,
+        h3 {
+            margin: 0;
+            font-family: "Space Grotesk", sans-serif;
+            letter-spacing: -.055em;
+        }
+
+        h1 {
+            margin-top: 22px;
+            font-size: clamp(3.8rem, 8vw, 7.3rem);
+            line-height: .9;
+        }
+
+        .hero-copy {
+            max-width: 510px;
+            margin: 28px 0 27px;
+            color: var(--muted);
+            font-size: 1.1rem;
+        }
+
+        .install-label {
+            display: block;
+            margin-bottom: 9px;
+            font-size: .78rem;
+            font-weight: 700;
+        }
+
+        .install-command {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            min-height: 54px;
+            padding: 0 16px;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: var(--soft);
+            color: var(--dark-green);
+            font: 500 .78rem/1.4 monospace;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .install-row {
+            display: flex;
+            max-width: 570px;
+            gap: 8px;
+        }
+
+        .copy-button {
+            display: grid;
+            width: 54px;
+            min-width: 54px;
+            min-height: 54px;
+            place-items: center;
+            padding: 0;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            background: #fff;
+            color: var(--ink);
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: border-color .18s, color .18s, background .18s;
+        }
+
+        .copy-button:hover,
+        .copy-button.copied {
+            border-color: var(--green);
+            background: var(--soft);
+            color: var(--dark-green);
+        }
+
+        .copy-button .check {
+            display: none;
+        }
+
+        .copy-button.copied .copy {
+            display: none;
+        }
+
+        .copy-button.copied .check {
+            display: inline;
+        }
+
+        .prompt {
+            margin-right: 10px;
+            color: var(--green);
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 13px;
+            margin-top: 18px;
+        }
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 49px;
+            padding: 0 19px;
+            border: 1px solid var(--ink);
+            border-radius: 9px;
+            background: var(--ink);
+            color: #fff;
+            font-size: .9rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: transform .18s, background .18s;
+        }
+
+        .button:hover {
+            transform: translateY(-3px);
+            background: var(--dark-green);
+        }
+
+        .button.alt {
+            border-color: var(--line);
+            background: #fff;
+            color: var(--ink);
+        }
+
+        .button.alt:hover {
+            border-color: var(--green);
+            background: var(--soft);
+        }
+
+        .hero-art {
+            position: relative;
+            display: grid;
+            min-height: 500px;
+            place-items: center;
+            border-radius: 32px;
+            background: var(--soft);
+            overflow: hidden;
+        }
+
+        .hero-art:before,
+        .hero-art:after {
+            position: absolute;
+            border: 1px solid rgba(21, 156, 76, .17);
+            border-radius: 50%;
+            content: "";
+        }
+
+        .hero-art:before {
+            width: 410px;
+            height: 410px;
+        }
+
+        .hero-art:after {
+            width: 540px;
+            height: 540px;
+        }
+
+        .hero-art img {
+            position: relative;
+            z-index: 1;
+            width: min(92%, 480px);
+            filter: drop-shadow(0 24px 18px rgba(49, 75, 56, .14));
+            animation: arrive .7s both;
+        }
+
+        .terminal-tag {
+            position: absolute;
+            right: 22px;
+            bottom: 22px;
+            z-index: 2;
+            padding: 9px 12px;
+            border-radius: 7px;
+            background: #18201dee;
+            color: #b7f1c7;
+            font: .75rem monospace;
+        }
+
+        .intro {
+            max-width: 750px;
+            padding-bottom: 75px;
+        }
+
+        .intro h2 {
+            margin-top: 14px;
+            font-size: clamp(2.2rem, 4vw, 3.7rem);
+            line-height: 1;
+        }
+
+        .intro p,
+        .feature p,
+        .showcase p {
+            color: var(--muted);
+        }
+
+        .intro p {
+            max-width: 620px;
+            margin-top: 20px;
+            font-size: 1.05rem;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+            padding-bottom: 115px;
+        }
+
+        .feature {
+            min-height: 300px;
+            padding: 26px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+        }
+
+        .feature img {
+            display: block;
+            width: 145px;
+            height: 145px;
+            margin: -7px auto 10px;
+            object-fit: contain;
+        }
+
+        .feature h3 {
+            font-size: 1.3rem;
+        }
+
+        .feature p {
+            margin: 8px 0 0;
+            font-size: .92rem;
+        }
+
+        .showcase {
+            display: grid;
+            grid-template-columns: .8fr 1.2fr;
+            align-items: center;
+            gap: 70px;
+            padding: 80px 0 115px;
+            border-top: 1px solid var(--line);
+        }
+
+        .showcase h2 {
+            margin-top: 14px;
+            font-size: clamp(2.4rem, 4vw, 4.2rem);
+            line-height: .95;
+        }
+
+        .code-window {
+            border: 1px solid #26352d;
+            border-radius: 12px;
+            background: #202723;
+            box-shadow: 0 24px 70px #1936241f;
+            overflow: hidden;
+        }
+
+        .window-bar {
+            display: flex;
+            gap: 6px;
+            padding: 13px 16px;
+            background: #2b352f;
+        }
+
+        .window-bar i {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #d9e5dc;
+            opacity: .7;
+        }
+
+        pre {
+            margin: 0;
+            padding: 25px;
+            color: #d6e8da;
+            font: 500 .82rem/1.8 monospace;
+            overflow-x: auto;
+        }
+
+        .green {
+            color: #71e492;
+        }
+
+        .yellow {
+            color: var(--yellow);
+        }
+
+        .program-preview {
+            padding: 0 0 115px;
+        }
+
+        .program-preview h2 {
+            max-width: 560px;
+            margin-top: 14px;
+            font-size: clamp(2.2rem, 4vw, 3.8rem);
+            line-height: .95;
+        }
+
+        .program-preview figure {
+            flex: 1;
+            margin: 0;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--soft);
+            box-shadow: 0 24px 70px rgba(25, 54, 36, .1);
+            overflow: hidden;
+        }
+
+        .preview-stage {
+            display: flex;
+            align-items: center;
+            gap: 42px;
+            margin-top: 32px;
+        }
+
+        .preview-gopher {
+            width: 180px;
+            max-width: 22%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .program-preview img {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .program-preview figcaption {
+            padding: 13px 18px;
+            color: var(--muted);
+            font-size: .8rem;
+        }
+
+        .muted {
+            color: #8b9e90;
+        }
+
+        .cta {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 28px;
+            padding: 55px 60px;
+            border-radius: 18px;
+            background: var(--yellow);
+        }
+
+        .cta h2 {
+            font-size: clamp(2rem, 4vw, 3.5rem);
+            line-height: .95;
+        }
+
+        .cta p {
+            margin: 14px 0 0;
+            color: #5e4b13;
+        }
+
+        footer {
+            display: flex;
+            justify-content: space-between;
+            padding: 75px 0 30px;
+            color: var(--muted);
+            font-size: .85rem;
+        }
+
+        @keyframes arrive {
+            from {
+                opacity: 0;
+                transform: translateY(22px) scale(.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        @media (max-width:800px) {
+            .wrap {
+                width: min(100% - 32px, 620px)
+            }
+
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 42px;
+                padding: 45px 0 78px
+            }
+
+            h1 {
+                font-size: clamp(3.7rem, 18vw, 6rem)
+            }
+
+            .hero-art {
+                min-height: 390px
+            }
+
+            .preview-stage {
+                align-items: center;
+                gap: 18px;
+            }
+
+            .preview-gopher {
+                width: 110px;
+                max-width: 24%;
+            }
+
+            .features,
+            .showcase,
+            .cta {
+                grid-template-columns: 1fr
+            }
+
+            .features {
+                padding-bottom: 80px
+            }
+
+            .showcase {
+                gap: 35px;
+                padding: 62px 0 85px
+            }
+
+            .cta {
+                padding: 38px 28px
+            }
+
+            footer {
+                flex-direction: column;
+                gap: 18px;
+                padding-top: 55px
+            }
+        }
+
+        @media (prefers-reduced-motion:reduce) {
+            html {
+                scroll-behavior: auto
+            }
+
+            .hero-art img {
+                animation: none
+            }
+
+            .button {
+                transition: none
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="wrap">
+        <a class="brand" href="https://github.com/EducLecomte/hollow" target="_blank" rel="noreferrer"><span
+                class="mark" aria-label="Gopher de Hollow"></span>Hollow</a>
+        <a class="top-link" href="https://github.com/EducLecomte/hollow" target="_blank" rel="noreferrer">GitHub ↗</a>
+    </header>
+    <main>
+        <section class="wrap hero">
+            <div>
+                <span class="eyebrow">Un terminal, sans détour</span>
+                <h1>File work.<br>Done well.</h1>
+                <p class="hero-copy">Hollow est un explorateur de fichiers et un éditeur de texte TUI, rapide, compact
+                    et entièrement écrit en Go.</p>
+                <span class="install-label">Installer sur Linux</span>
+                <div class="install-row">
+                    <code class="install-command"
+                        id="install-command"><span class="prompt">$</span>curl -sL https://raw.githubusercontent.com/EducLecomte/hollow/main/install.sh | bash</code>
+                    <button class="copy-button" id="copy-install" type="button"
+                        aria-label="Copier la commande d'installation" title="Copier la commande">
+                        <span class="copy" aria-hidden="true">⧉</span>
+                        <span class="check" aria-hidden="true">✓</span>
+                    </button>
+                </div>
+                <div class="actions">
+                    <a class="button" href="https://github.com/EducLecomte/hollow" target="_blank" rel="noreferrer">Voir
+                        le projet ↗</a>
+                    <a class="button alt" href="https://github.com/EducLecomte/hollow#installation-rapide">Installation
+                        détaillée</a>
+                </div>
+            </div>
+            <div class="hero-art"><img
+                    src="https://raw.githubusercontent.com/EducLecomte/hollow/main/gophers/gopher_mckill.png"
+                    alt="Gopher de Hollow devant un écran"><span class="terminal-tag">hollow ./mon-dossier</span></div>
+        </section>
+        <section class="wrap intro">
+            <span class="eyebrow">Pensé pour le terminal</span>
+            <h2>Tout ce dont vos fichiers ont besoin.</h2>
+            <p>Une interface à double panneau, l’édition plein écran et les connexions distantes réunies dans un outil
+                calme et direct.</p>
+        </section>
+        <section class="wrap features" aria-label="Fonctionnalités">
+            <article class="feature"><img
+                    src="https://raw.githubusercontent.com/EducLecomte/hollow/main/gophers/gopher_work.png"
+                    alt="Gopher avec une clé">
+                <h3>Explorer librement</h3>
+                <p>Parcourez vos fichiers locaux, FTP, FTPS et SFTP dans une interface familière.</p>
+            </article>
+            <article class="feature"><img
+                    src="https://raw.githubusercontent.com/EducLecomte/hollow/main/gophers/gopher_tui.png"
+                    alt="Gopher dans une interface terminal">
+                <h3>Rester dans le flux</h3>
+                <p>Ouvrez, modifiez et recherchez vos fichiers sans quitter le terminal.</p>
+            </article>
+            <article class="feature"><img
+                    src="https://raw.githubusercontent.com/EducLecomte/hollow/main/gophers/gopher_install.png"
+                    alt="Gopher qui installe Hollow">
+                <h3>Installer simplement</h3>
+                <p>Un binaire Go léger et une installation rapide sur Linux.</p>
+            </article>
+        </section>
+        <section class="wrap showcase">
+            <div><span class="eyebrow">Conçu en Go</span>
+                <h2>Petit binaire.<br>Grand terrain.</h2>
+                <p>Hollow reste proche de vos fichiers, prêt pour le prochain chemin.</p>
+            </div>
+            <div class="code-window" aria-label="Exemple d'utilisation">
+                <div class="window-bar"><i></i><i></i><i></i></div>
+                <pre><span class="muted"># Ouvrir le répertoire courant</span>
+<span class="yellow">hollow</span>
+
+<span class="muted"># Éditer un fichier</span>
+<span class="yellow">hollow</span> README.md</pre>
+            </div>
+        </section>
+        <section class="wrap program-preview">
+            <span class="eyebrow">L'interface en action</span>
+            <h2>Vos fichiers, directement sous les yeux.</h2>
+            <div class="preview-stage">
+                <figure>
+                    <img src="https://raw.githubusercontent.com/EducLecomte/hollow/main/explorer.png"
+                        alt="Interface de l'explorateur de fichiers Hollow dans un terminal">
+                    <figcaption>Navigation locale, visualiseur et raccourcis dans une seule interface TUI.</figcaption>
+                </figure>
+                <img class="preview-gopher"
+                    src="https://raw.githubusercontent.com/EducLecomte/hollow/main/gophers/gopher_clean.png"
+                    alt="Gopher propre de Hollow">
+            </div>
+        </section>
+        <section class="wrap cta">
+            <div>
+                <h2>Ouvrez votre prochain dossier.</h2>
+                <p>Le code, les releases et la documentation sont sur GitHub.</p>
+            </div><a class="button" href="https://github.com/EducLecomte/hollow" target="_blank" rel="noreferrer">Hollow
+                sur GitHub ↗</a>
+        </section>
+    </main>
+    <footer class="wrap"><span>Hollow · Open source · Go</span><a href="https://github.com/EducLecomte/hollow"
+            target="_blank" rel="noreferrer">github.com/EducLecomte/hollow</a></footer>
+    <script>
+        const copyButton = document.querySelector("#copy-install");
+        const installCommand = document.querySelector("#install-command");
+        const commandText = installCommand.textContent.replace(/^\$\s*/, "").trim();
+
+        copyButton.addEventListener("click", async () => {
+            try {
+                await navigator.clipboard.writeText(commandText);
+            } catch {
+                const temporaryInput = document.createElement("textarea");
+                temporaryInput.value = commandText;
+                document.body.appendChild(temporaryInput);
+                temporaryInput.select();
+                document.execCommand("copy");
+                temporaryInput.remove();
+            }
+
+            copyButton.classList.add("copied");
+            copyButton.setAttribute("aria-label", "Commande copiée");
+            copyButton.title = "Commande copiée";
+            setTimeout(() => {
+                copyButton.classList.remove("copied");
+                copyButton.setAttribute("aria-label", "Copier la commande d'installation");
+                copyButton.title = "Copier la commande";
+            }, 1800);
+        });
+    </script>
+</body>
+
+</html>
