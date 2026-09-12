@@ -101,5 +101,21 @@ chmod +x install.sh
 ./install.sh
 ```
 
+### Installation sur Alpine Linux
+
+Hollow peut être utilisé dans Alpine Linux, notamment dans un conteneur LXC. Pour compiler depuis les sources :
+
+```bash
+apk add --no-cache go git bash curl wget
+git clone https://github.com/EducLecomte/go_hollow_project.git
+cd go_hollow_project
+CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /usr/local/bin/hollow ./cmd/hollow
+hollow --version
+```
+
+`CGO_ENABLED=0` produit un binaire statique compatible avec la bibliothèque `musl` utilisée par Alpine. Les releases Linux existent en versions `amd64` et `arm64` ; choisissez l'architecture correspondant à votre conteneur.
+
+Pour utiliser le script `install.sh` sur Alpine, installez d'abord `bash`, `curl` et `wget` avec `apk`. L'application doit être lancée depuis un terminal disposant d'un TTY.
+
 ---
 *Documentation mise à jour le 12 Septembre 2026 pour la prochaine release.*
