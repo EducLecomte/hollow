@@ -1,6 +1,6 @@
-<img src="gophers/gopher_mckill.png" alt="Gopher de Hollow" align="right" width="300">
-
 # Hollow
+
+<img src="gophers/gopher_mckill.png" alt="Gopher de Hollow" align="right" width="300">
 
 **Hollow** est un explorateur de fichiers et un éditeur de texte TUI écrit en Go. Il combine la simplicité de **Nano**, l'efficacité de **Midnight Commander** et la possibilité de travailler sur des fichiers locaux ou distants depuis un seul terminal.
 
