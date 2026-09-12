@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EducLecomte/go_hollow_project/internal/vfs"
+	"github.com/EducLecomte/hollow/internal/vfs"
 )
 
 func TestCopyRecursiveBetweenVFS(t *testing.T) {

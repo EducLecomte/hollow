@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/EducLecomte/go_hollow_project/internal/app"
+	"github.com/EducLecomte/hollow/internal/app"
 )
 
 // Version est injectée lors de la compilation via -ldflags

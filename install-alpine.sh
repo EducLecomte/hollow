@@ -2,7 +2,7 @@
 
 set -eu
 
-REPOSITORY="EducLecomte/go_hollow_project"
+REPOSITORY="EducLecomte/hollow"
 BINARY_NAME="hollow"
 INSTALL_DIR=${INSTALL_DIR:-/usr/local/bin}
 

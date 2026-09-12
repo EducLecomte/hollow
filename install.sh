@@ -3,7 +3,7 @@
 # Arrêter le script en cas d'erreur
 set -e
 
-GITHUB_REPO="EducLecomte/go_hollow_project" # Remplacez par votre nom d'utilisateur/repo si différent
+    GITHUB_REPO="EducLecomte/hollow" # Remplacez par votre nom d'utilisateur/repo si différent
 BINARY_NAME="hollow"
 INSTALL_DIR="/usr/local/bin"
 

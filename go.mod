@@ -1,4 +1,4 @@
-module github.com/EducLecomte/go_hollow_project
+module github.com/EducLecomte/hollow
 
 go 1.26.2
 

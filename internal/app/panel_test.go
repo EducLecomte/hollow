@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EducLecomte/go_hollow_project/internal/vfs"
+	"github.com/EducLecomte/hollow/internal/vfs"
 )
 
 func TestPanelStateBasics(t *testing.T) {

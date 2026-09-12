@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EducLecomte/go_hollow_project/internal/utils"
-	"github.com/EducLecomte/go_hollow_project/internal/vfs"
+	"github.com/EducLecomte/hollow/internal/utils"
+	"github.com/EducLecomte/hollow/internal/vfs"
 )
 
 // createFile crée un nouveau fichier vide dans le répertoire du panneau actif et l'ouvre dans l'éditeur.

@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/EducLecomte/go_hollow_project/internal/utils"
-	"github.com/EducLecomte/go_hollow_project/internal/vfs"
+	"github.com/EducLecomte/hollow/internal/utils"
+	"github.com/EducLecomte/hollow/internal/vfs"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

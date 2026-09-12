@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/EducLecomte/go_hollow_project/internal/utils"
+	"github.com/EducLecomte/hollow/internal/utils"
 	"github.com/gdamore/tcell/v2"
 )
 

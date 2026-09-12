@@ -1,133 +1,125 @@
 # Hollow
 
-![Banner](banner.png)
+![Hollow](gophers/gopher_mckill.jpeg)
 
-**Hollow** est un éditeur de texte TUI (Terminal User Interface) moderne et ultra-fluide écrit en Go. Il fusionne la simplicité d'utilisation de **Nano** avec la puissance de navigation et de gestion de fichiers distants inspirée de **mcedit** (Midnight Commander).
+**Hollow** est un explorateur de fichiers et un éditeur de texte TUI écrit en Go. Il combine la simplicité de **Nano**, l'efficacité de **Midnight Commander** et la possibilité de travailler sur des fichiers locaux ou distants depuis un seul terminal.
 
-Il s'agit d'un projet de developpement assisté par IA, dans un but récréatif, pédagogique et formateur.
+Le projet est développé avec l'aide de l'IA dans un but récréatif, pédagogique et formateur.
 
-## Aperçu
+## Ce que Hollow permet
 
-![Explorateur](explorer.png)
-*L'explorateur de fichiers avec navigation asynchrone et client FTP intégré.*
+- Parcourir des fichiers locaux, FTP, FTPS et SFTP dans une interface à double panneau.
+- Ouvrir et modifier des fichiers directement depuis l'explorateur.
+- Charger les répertoires en arrière-plan pour garder une interface réactive, même sur un réseau lent.
+- Naviguer dans les archives `.zip`, `.tar` et `.tar.gz`, puis en extraire le contenu.
+- Modifier les permissions, propriétaires et groupes avec `chmod` et `chown`.
+- Détecter les fichiers binaires avant de tenter de les afficher dans l'éditeur.
+- Enregistrer des dossiers favoris et retrouver rapidement un chemin avec le fuzzy finder.
+- Afficher une aide contextuelle adaptée au mode courant avec `F1`.
 
-## Fonctionnalités Clés
+## Les gophers de Hollow
 
-- **Explorateur de fichiers multi-protocoles** : Navigation fluide dans l'arborescence locale et distante (FTP, FTPS, SFTP) avec tri automatique (dossiers en premier, puis fichiers).
-- **Architecture Asynchrone** : Chargement des fichiers en arrière-plan avec système d'annulation intelligent (Context). L'interface ne "gèle" jamais, même sur des connexions réseaux lentes.
-- **Client Réseau Sécurisé Intégré** : Connectez-vous à des serveurs distants (via `F3`) en FTP, FTPS ou SFTP, et éditez vos fichiers comme s'ils étaient sur votre disque.
-- **Gestion des droits (Chmod/Chown)** : Modifiez les permissions, les propriétaires et groupes directement depuis l'explorateur (via `F5`), avec support de la récursivité locale et de la modification distante (SFTP).
-- **Sécurité et Robustesse** : Détection automatique des fichiers binaires (images, exécutables) avec avertissements pour éviter les affichages illisibles ou les plantages.
-- **Explorateur d'archives** : Navigation transparente et extraction à la volée du contenu des fichiers `.zip`, `.tar` et `.tar.gz`.
-- **Éditeur de texte** : Mode plein écran, numérotation des lignes, recherche textuelle (`Ctrl+F`), et raccourcis de copier-coller classiques (façon Nano).
-- **Barre latérale des Favoris** : Enregistrez vos dossiers fréquents et accédez-y instantanément via une barre latérale rétractable (`Ctrl+B`).
-- **Aide Contextuelle Dynamique** : Appuyez sur `F1` à tout moment pour voir les raccourcis spécifiques au mode actuel.
+<p align="center">
+	<img src="gophers/gopher_tui.jpeg" alt="Gopher dans l'interface TUI" width="31%">
+	<img src="gophers/gopher_work.jpeg" alt="Gopher au travail" width="31%">
+	<img src="gophers/gopher_clean.jpeg" alt="Gopher de Hollow" width="31%">
+</p>
 
-## Prochaine release
+## Installation rapide
 
-- Refonte des raccourcis de navigation avec des touches de fonction plus accessibles : `F1`, `F3`, `F5`, `F7` et `F9`.
-- Création des fichiers et dossiers regroupée dans une seule commande via `F7`.
-- Recherche globale accessible via `Ctrl+F` dans l'explorateur, tandis que ce raccourci conserve la recherche dans l'éditeur.
-- Gestion des favoris déplacée vers `Ctrl+D`.
-- Suppression déclenchée uniquement par `Suppr` dans l'explorateur et les favoris.
-- Aide contextuelle et documentation alignées sur ces nouveaux raccourcis.
-
-## Architecture Technique
-
-Le projet repose sur une abstraction puissante du système de fichiers (**VFS**) située dans `internal/vfs/`, permettant d'ajouter facilement de nouveaux protocoles (SFTP, S3, etc.) sans toucher à la logique de l'interface utilisateur.
-
-## Raccourcis Clavier
-
-### Navigation (Mode par défaut & Double Panneau)
-| Touche | Action |
-| :--- | :--- |
-| `F1` | Aide contextuelle (adaptée au mode actif) |
-| `F3` | Connexion réseau (**FTP / FTPS / SFTP**) : active automatiquement le double panneau (Local ↔ Distant) |
-| `F5` | Modifier les permissions (Chmod / Chown) |
-| `F6` | **Mode Transfert** : active le double panneau en local, ou transfère l'élément sélectionné vers l'autre panneau |
-| `Shift + F6` | Transférer depuis l'autre panneau vers le panneau actif |
-| `F7` | Créer un fichier ou un dossier dans le panneau actif |
-| `F9` | Extraire une archive vers le panneau opposé |
-| `TAB` / `Shift + TAB` | Passer au **Visualiseur** (mode par défaut) ou basculer entre **panneau gauche / droit** (mode double panneau / FTP) |
-| `Ctrl + B` | Afficher / Masquer la barre latérale des Favoris |
-| `Ctrl + D` | Ajouter / Retirer le dossier courant des favoris |
-| `Ctrl + F` | Recherche Globale (Fuzzy Finder sur tout le disque) |
-| `Ctrl + K` / `Ctrl + U` | Copier / Coller le chemin d'un élément |
-| `Ctrl + X` | Quitter Hollow (demande confirmation) |
-| `Entrée` | Ouvrir un fichier (éditeur) ou entrer dans un dossier / archive |
-| `Suppr` | Supprimer l'élément sélectionné dans le panneau actif |
-| `1-9` | Accès rapide direct aux favoris (Home & Racine par défaut) |
-| `Ctrl + N` | Renommer le favori sélectionné |
-
-### Édition (Éditeur Plein Écran)
-| Touche | Action |
-| :--- | :--- |
-| `F1` | Aide contextuelle (Édition) |
-| `Ctrl + S` | Sauvegarder les modifications |
-| `Ctrl + F` | Rechercher dans le texte (Suivant avec Entrée) |
-| `Ctrl + K` | Couper la ligne actuelle (Nano-style, concatène si répété) |
-| `Ctrl + U` | Coller le bloc de lignes coupé |
-| `Esc` / `Ctrl + X` | Fermer l'éditeur (confirmation si non sauvegardé) |
-
-## Installation & Utilisation
-
-### Prérequis
-- `curl` et `wget` (pour l'installation rapide)
-
-### Lancement
-Hollow peut être lancé dans le répertoire courant ou en lui passant un chemin (fichier ou dossier) en argument de ligne de commande :
-```bash
-# Lancement classique (ouvre le dossier de travail actuel)
-hollow
-
-# Ouverture directe d'un répertoire spécifique
-hollow internal/app
-
-# Édition directe d'un fichier (existant ou nouveau)
-hollow README.md
-```
-
-### Installation (Utilisateurs)
-Pour installer la version native pré-compilée sur Linux (Debian, Ubuntu, Kali, etc.) sans avoir besoin de Go :
+Sur Linux, installer la dernière version précompilée sans installer Go :
 
 ```bash
-curl -sL https://raw.githubusercontent.com/EducLecomte/go_hollow_project/main/install.sh | bash
+curl -sL https://raw.githubusercontent.com/EducLecomte/hollow/main/install.sh | bash
 ```
 
-Ou via le script local si vous avez déjà cloné le projet :
+Depuis une copie locale du projet :
+
 ```bash
 chmod +x install.sh
 ./install.sh
 ```
 
-### Installation sur Alpine Linux
+### Alpine Linux
 
-Hollow peut être utilisé dans Alpine Linux, notamment dans un conteneur LXC. Pour compiler depuis les sources :
+Pour compiler un binaire statique compatible avec `musl` :
 
 ```bash
 apk add --no-cache go git bash curl wget
-git clone https://github.com/EducLecomte/go_hollow_project.git
-cd go_hollow_project
+git clone https://github.com/EducLecomte/hollow.git
+cd hollow
 CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /usr/local/bin/hollow ./cmd/hollow
-hollow --version
 ```
 
-`CGO_ENABLED=0` produit un binaire statique compatible avec la bibliothèque `musl` utilisée par Alpine. Les releases Linux existent en versions `amd64` et `arm64` ; choisissez l'architecture correspondant à votre conteneur.
-
-Pour installer automatiquement la dernière release sans compiler :
+Ou installer automatiquement la dernière release :
 
 ```bash
 apk add --no-cache curl
-curl -fsSL https://raw.githubusercontent.com/EducLecomte/go_hollow_project/main/install-alpine.sh | sh
+curl -fsSL https://raw.githubusercontent.com/EducLecomte/hollow/main/install-alpine.sh | sh
 ```
 
-Pour installer une version précise :
+Les releases Linux sont disponibles en `amd64` et `arm64`. Le terminal doit disposer d'un TTY.
+
+## Utilisation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EducLecomte/go_hollow_project/main/install-alpine.sh | sh -s -- v1.2.0
+# Ouvrir le répertoire courant
+hollow
+
+# Ouvrir un répertoire précis
+hollow internal/app
+
+# Éditer un fichier existant ou nouveau
+hollow README.md
 ```
 
-Le script accepte aussi `wget` à la place de `curl`, détecte `amd64` ou `arm64`, et utilise `doas` ou `sudo` si nécessaire. L'application doit être lancée depuis un terminal disposant d'un TTY.
+## Raccourcis
 
----
-*Documentation mise à jour le 12 Septembre 2026 pour la prochaine release.*
+### Explorateur
+
+| Touche | Action |
+| :--- | :--- |
+| `F1` | Afficher l'aide contextuelle |
+| `F3` | Se connecter en FTP, FTPS ou SFTP |
+| `F5` | Modifier les permissions et propriétaires |
+| `F6` | Activer le transfert ou transférer l'élément sélectionné |
+| `F7` | Créer un fichier ou un dossier |
+| `F9` | Extraire une archive vers l'autre panneau |
+| `Tab` / `Shift + Tab` | Changer de panneau ou passer au visualiseur |
+| `Ctrl + B` | Afficher ou masquer les favoris |
+| `Ctrl + D` | Ajouter ou retirer le dossier courant des favoris |
+| `Ctrl + F` | Rechercher dans l'arborescence |
+| `Ctrl + K` / `Ctrl + U` | Copier ou coller le chemin |
+| `Entrée` | Ouvrir un fichier, dossier ou archive |
+| `Suppr` | Supprimer l'élément sélectionné |
+| `Ctrl + X` | Quitter Hollow |
+
+### Éditeur
+
+| Touche | Action |
+| :--- | :--- |
+| `F1` | Afficher l'aide contextuelle |
+| `Ctrl + S` | Sauvegarder |
+| `Ctrl + F` | Rechercher dans le fichier |
+| `Ctrl + K` | Couper la ligne courante |
+| `Ctrl + U` | Coller les lignes coupées |
+| `Esc` / `Ctrl + X` | Fermer l'éditeur |
+
+## Architecture
+
+L'abstraction de système de fichiers (**VFS**) de `internal/vfs/` sépare les protocoles de la logique de l'interface. Elle permet de gérer les systèmes local, FTP, FTPS, SFTP et les archives sans dupliquer le comportement de l'application.
+
+Le code de l'interface se trouve dans `internal/app/`, tandis que le point d'entrée est dans `cmd/hollow/`.
+
+## Contribuer
+
+Les idées, retours et contributions sont les bienvenus. Pour commencer :
+
+```bash
+git clone https://github.com/EducLecomte/hollow.git
+cd hollow
+go test ./...
+go run ./cmd/hollow
+```
+
+![Gopher d'installation](gophers/gopher_install.jpeg)
