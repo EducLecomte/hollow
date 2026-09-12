@@ -1,6 +1,6 @@
 # Hollow
 
-<img src="gophers/gopher_mckill.png" alt="Gopher de Hollow" align="right" width="140">
+<img src="gophers/gopher_mckill.png" alt="Gopher de Hollow" align="right" width="200">
 
 **Hollow** est un explorateur de fichiers et un éditeur de texte TUI écrit en Go. Il combine la simplicité de **Nano**, l'efficacité de **Midnight Commander** et la possibilité de travailler sur des fichiers locaux ou distants depuis un seul terminal.
 
@@ -56,7 +56,7 @@ Les releases Linux sont disponibles en `amd64` et `arm64`. Le terminal doit disp
 
 ## Utilisation
 
-<img src="gophers/gopher_tui.png" alt="Gopher dans l'interface TUI" align="right" width="120">
+<img src="gophers/gopher_tui.png" alt="Gopher dans l'interface TUI" align="right" width="200">
 
 ```bash
 # Ouvrir le répertoire courant
@@ -90,6 +90,8 @@ hollow README.md
 | `Suppr` | Supprimer l'élément sélectionné |
 | `Ctrl + X` | Quitter Hollow |
 
+<img src="gophers/gopher_work.png" alt="Gopher au travail" align="right" width="120">
+
 ### Éditeur
 
 | Touche | Action |
@@ -111,13 +113,4 @@ Le code de l'interface se trouve dans `internal/app/`, tandis que le point d'ent
 
 ## Contribuer
 
-<img src="gophers/gopher_work.png" alt="Gopher au travail" align="right" width="120">
-
-Les idées, retours et contributions sont les bienvenus. Pour commencer :
-
-```bash
-git clone https://github.com/EducLecomte/hollow.git
-cd hollow
-go test ./...
-go run ./cmd/hollow
-```
+Les idées, retours et contributions sont les bienvenus. 
