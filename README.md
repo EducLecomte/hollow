@@ -115,7 +115,20 @@ hollow --version
 
 `CGO_ENABLED=0` produit un binaire statique compatible avec la bibliothèque `musl` utilisée par Alpine. Les releases Linux existent en versions `amd64` et `arm64` ; choisissez l'architecture correspondant à votre conteneur.
 
-Pour utiliser le script `install.sh` sur Alpine, installez d'abord `bash`, `curl` et `wget` avec `apk`. L'application doit être lancée depuis un terminal disposant d'un TTY.
+Pour installer automatiquement la dernière release sans compiler :
+
+```bash
+apk add --no-cache curl
+curl -fsSL https://raw.githubusercontent.com/EducLecomte/go_hollow_project/main/install-alpine.sh | sh
+```
+
+Pour installer une version précise :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/EducLecomte/go_hollow_project/main/install-alpine.sh | sh -s -- v1.2.0
+```
+
+Le script accepte aussi `wget` à la place de `curl`, détecte `amd64` ou `arm64`, et utilise `doas` ou `sudo` si nécessaire. L'application doit être lancée depuis un terminal disposant d'un TTY.
 
 ---
 *Documentation mise à jour le 12 Septembre 2026 pour la prochaine release.*
