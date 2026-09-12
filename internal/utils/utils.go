@@ -12,7 +12,7 @@ const (
 	HelpMsgDual    = "[yellow]F1:[white] Aide | [yellow]F5:[white] Droits | [yellow]F6:[white] Transférer | [yellow]F7:[white] Créer | [yellow]F9:[white] Extraire | [yellow]Tab:[white] Panneau | [yellow]Suppr:[white] Suppr | [yellow]Esc:[white] Quitter"
 	HelpMsgEdit    = "[yellow]F1:[white] Aide | [yellow]Ctrl+S:[white] Sauver | [yellow]Ctrl+F:[white] Chercher | [yellow]Ctrl+K/U:[white] C/V | [yellow]Esc:[white] Quitter"
 	HelpMsgView    = "[yellow]F1:[white] Aide | [yellow]TAB/S-TAB:[white] Retour | [yellow]Ctrl+X:[white] Quitter | [yellow]Flèches:[white] Défiler"
-	HelpMsgArchive = "[yellow]F1:[white] Aide | [yellow]Entrée:[white] Aperçu | [yellow]F9:[white] Extraire | [yellow]..:[white] Sortir"
+	HelpMsgArchive = "[yellow]F1:[white] Aide | [yellow]F9:[white] Extraire | [yellow]Entrée:[white] Aperçu"
 	HelpMsgFiles   = HelpMsgDefault
 
 	HelpContentExplorer = `
@@ -31,7 +31,6 @@ const (
  Tab         : Basculer entre panneau gauche et droit
  Ctrl + Q    : Activer/Désactiver aperçu (Quick View)
  Entrée      : Ouvrir un fichier / Entrer dans un dossier
- ..          : Remonter au dossier parent
  Suppr       : Supprimer l'élément sélectionné
  
  [yellow]Explorateur & Fichiers[white]
@@ -59,7 +58,6 @@ const (
  [yellow]Navigation[white]
  ----------------------
  Entrée      : Visualiser un fichier dans l'archive
- ..          : Remonter (ou sortir de l'archive si à la racine)
  TAB/S-TAB   : Naviguer entre les panneaux (Cycle)
  `
 

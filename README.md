@@ -55,7 +55,6 @@ Le projet repose sur une abstraction puissante du système de fichiers (**VFS**)
 | `Ctrl + K` / `Ctrl + U` | Copier / Coller le chemin d'un élément |
 | `Ctrl + X` | Quitter Hollow (demande confirmation) |
 | `Entrée` | Ouvrir un fichier (éditeur) ou entrer dans un dossier / archive |
-| `..` | Remonter au dossier parent (ou quitter FS distant/archive) |
 | `Suppr` | Supprimer l'élément sélectionné dans le panneau actif |
 | `1-9` | Accès rapide direct aux favoris (Home & Racine par défaut) |
 | `Ctrl + N` | Renommer le favori sélectionné |
