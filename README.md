@@ -1,4 +1,4 @@
-<img src="gophers/gopher_mckill.png" alt="Gopher de Hollow" align="left" width="300">
+<img src="gophers/gopher_mckill.png" alt="Gopher de Hollow" align="right" width="300">
 
 
 # Hollow
