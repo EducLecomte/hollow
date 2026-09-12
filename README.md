@@ -18,7 +18,7 @@ Le projet est développé avec l'aide de l'IA dans un but récréatif, pédagogi
 
 ## Installation rapide
 
-<img src="gophers/gopher_install.png" alt="Gopher d'installation" align="right" width="120">
+<img src="gophers/gopher_install.png" alt="Gopher d'installation" align="right" width="200">
 
 Sur Linux, installer la dernière version précompilée sans installer Go :
 
@@ -89,7 +89,7 @@ hollow README.md
 | `Suppr` | Supprimer l'élément sélectionné |
 | `Ctrl + X` | Quitter Hollow |
 
-<img src="gophers/gopher_work.png" alt="Gopher au travail" align="right" width="120">
+<img src="gophers/gopher_work.png" alt="Gopher au travail" align="left" width="200">
 
 ### Éditeur
 
