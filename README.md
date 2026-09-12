@@ -4,7 +4,7 @@
 
 **Hollow** est un éditeur de texte TUI (Terminal User Interface) moderne et ultra-fluide écrit en Go. Il fusionne la simplicité d'utilisation de **Nano** avec la puissance de navigation et de gestion de fichiers distants inspirée de **mcedit** (Midnight Commander).
 
-Ce projet est développé avec une IA, dans un but récréatif et pédagogique.
+Il s'agit d'un projet de developpement assisté par IA, dans un but récréatif et pédagogique.
 
 ## Aperçu
 
