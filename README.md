@@ -1,6 +1,6 @@
 # Hollow
 
-<img src="gophers/gopher_mckill.png" alt="Gopher de Hollow" align="left" width="300">
+<img src="ressources/gophers/gopher_mckill.png" alt="Gopher de Hollow" align="left" width="300">
 
 **Hollow** est un explorateur de fichiers et un éditeur de texte TUI écrit en Go. Il combine la simplicité de **Nano**, l'efficacité de **Midnight Commander** et la possibilité de travailler sur des fichiers locaux ou distants depuis un seul terminal.
 
@@ -19,9 +19,13 @@ Le projet est développé avec l'aide de l'IA dans un but récréatif, pédagogi
 - Enregistrer des dossiers favoris et retrouver rapidement un chemin avec le fuzzy finder.
 - Afficher une aide contextuelle adaptée au mode courant avec `F1`.
 
+## Documentation
+
+Pour la documentation technique complète, voir [DOC.md](DOC.md).
+
 ## Installation rapide
 
-<img src="gophers/gopher_install.png" alt="Gopher d'installation" align="right" width="200">
+<img src="ressources/gophers/gopher_install.png" alt="Gopher d'installation" align="right" width="200">
 
 Sur Linux, installer la dernière version précompilée sans installer Go :
 
@@ -58,7 +62,7 @@ Les releases Linux sont disponibles en `amd64` et `arm64`. Le terminal doit disp
 
 ## Utilisation
 
-<img src="gophers/gopher_tui.png" alt="Gopher dans l'interface TUI" align="right" width="250">
+<img src="ressources/gophers/gopher_tui.png" alt="Gopher dans l'interface TUI" align="right" width="250">
 
 ```bash
 # Ouvrir le répertoire courant
@@ -92,7 +96,7 @@ hollow README.md
 | `Suppr` | Supprimer l'élément sélectionné |
 | `Ctrl + X` | Quitter Hollow |
 
-<img src="gophers/gopher_work.png" alt="Gopher au travail" align="left" width="200">
+<img src="ressources/gophers/gopher_work.png" alt="Gopher au travail" align="left" width="200">
 
 ### Éditeur
 
@@ -114,6 +118,6 @@ Le code de l'interface se trouve dans `internal/app/`, tandis que le point d'ent
 
 ## Contribuer
 
-<img src="gophers/gopher_clean.png" alt="Gopher de Hollow" align="right" width="120">
+<img src="ressources/gophers/gopher_clean.png" alt="Gopher de Hollow" align="right" width="120">
 
 Les idées, retours et contributions sont les bienvenus. 
