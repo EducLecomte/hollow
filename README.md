@@ -14,6 +14,7 @@ Le projet est développé avec l'aide de l'IA dans un but récréatif, pédagogi
 - Ouvrir et modifier des fichiers directement depuis l'explorateur.
 - Charger les répertoires en arrière-plan pour garder une interface réactive, même sur un réseau lent.
 - Naviguer dans les archives `.zip`, `.tar` et `.tar.gz`, puis en extraire le contenu.
+- Copier des fichiers entre panneaux, renommer des éléments et créer des liens symboliques.
 - Modifier les permissions, propriétaires et groupes avec `chmod` et `chown`.
 - Détecter les fichiers binaires avant de tenter de les afficher dans l'éditeur.
 - Enregistrer des dossiers favoris et retrouver rapidement un chemin avec le fuzzy finder.
@@ -83,15 +84,17 @@ hollow README.md
 | :--- | :--- |
 | `F1` | Afficher l'aide contextuelle |
 | `F3` | Se connecter en FTP, FTPS ou SFTP |
+| `F4` | Créer un lien symbolique (`ln -s`) |
 | `F5` | Modifier les permissions et propriétaires |
-| `F6` | Activer le transfert ou transférer l'élément sélectionné |
+| `F6` | Activer le double panneau ou copier l'élément sélectionné vers l'autre panneau |
 | `F7` | Créer un fichier ou un dossier |
 | `F9` | Extraire une archive vers l'autre panneau |
 | `Tab` / `Shift + Tab` | Changer de panneau ou passer au visualiseur |
 | `Ctrl + B` | Afficher ou masquer les favoris |
 | `Ctrl + D` | Ajouter ou retirer le dossier courant des favoris |
 | `Ctrl + F` | Rechercher dans l'arborescence |
-| `Ctrl + K` / `Ctrl + U` | Copier ou coller le chemin |
+| `Ctrl + K` / `Ctrl + U` | Préparer puis coller une copie de l'élément sélectionné |
+| `Ctrl + R` | Renommer le fichier ou dossier sélectionné |
 | `Entrée` | Ouvrir un fichier, dossier ou archive |
 | `Suppr` | Supprimer l'élément sélectionné |
 | `Ctrl + X` | Quitter Hollow |

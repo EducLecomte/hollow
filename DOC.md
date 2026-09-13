@@ -357,7 +357,7 @@ Toute opération longue (listage d'un panneau, connexion, ouverture de fichier, 
 
 ### 6.2 Détection des fichiers binaires
 
-- Dans le **visualiseur** : échantillon des 10 000 premiers octets ; si `IsBinary` (octet nul) est positif, l'aperçu est remplacé par un avertissement (`Fichier identifié comme une image — Aperçu désactivé`), la description venant de `GetBinaryFileDescription`.
+- Dans le **visualiseur** : échantillon des 10 000 premiers octets ; si `IsBinary` (octet nul) est positif, l'aperçu est remplacé par un avertissement `[ Fichier identifié comme <description> - Aperçu désactivé ]` (en rouge), la description venant de `GetBinaryFileDescription`.
 - Dans l'**éditeur** : lecture en blocs de 32 Ko ; si du binaire est détecté, une boîte de confirmation s'affiche avant d'ouvrir (l'option `force` de `openFile` permet de forcer après confirmation).
 
 ### 6.3 Prévisualisation en direct
@@ -399,9 +399,9 @@ Deux cas :
 
 Les deux cas passent par `CopyRecursiveBetweenVFS` avec modale d'annulation.
 
-### 6.7 Copier / coller / déplacer et suppression
+### 6.7 Copier / coller, renommer et suppression
 
-Hollow distingue clairement la **copie** et le **déplacement** :
+Hollow distingue clairement la **copie**, le **renommage** et la **suppression** :
 
 - `Ctrl+K` mémorise le chemin **et le VFS source** de la sélection ;
 - `Ctrl+U` colle dans le répertoire du panneau actif : en cas de nom existant, un suffixe `_copy`, `_copy2`, … est généré ; si le VFS source diffère du VFS cible, la copie croisée (`CopyRecursiveBetweenVFS`) est utilisée, sinon la copie native du VFS ;
@@ -479,7 +479,7 @@ go test ./internal/app/ -run TestPanelStateBasics
 ### 9.1 Releases
 
 - pousser une tag `v*` déclenche `.github/workflows/release.yml` ;
-- compilation Linux `amd64` et `arm64` avec `-ldflags "-s -w"` ;
+- compilation Linux `amd64` et `arm64` avec `-ldflags="-X main.Version=$VERSION -s -w"` (la version est injectée depuis la tag) ;
 - artefacts publiés en GitHub Release sous les noms `hollow-linux-amd64` et `hollow-linux-arm64` ;
 - `install.sh` / `install-alpine.sh` récupèrent automatiquement la dernière release via l'API GitHub.
 
