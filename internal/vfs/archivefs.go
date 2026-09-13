@@ -330,6 +330,16 @@ func (a *ArchiveFS) Copy(ctx context.Context, src, dst string) error {
 	return fmt.Errorf("les archives sont montées en lecture seule")
 }
 
+// Rename renvoie une erreur : les archives sont montées en lecture seule.
+func (a *ArchiveFS) Rename(ctx context.Context, src, dst string) error {
+	return fmt.Errorf("les archives sont montées en lecture seule")
+}
+
+// Symlink renvoie une erreur : les archives sont montées en lecture seule.
+func (a *ArchiveFS) Symlink(ctx context.Context, target, linkPath string) error {
+	return fmt.Errorf("les archives sont montées en lecture seule")
+}
+
 // Remove renvoie une erreur : les archives sont montées en lecture seule.
 func (a *ArchiveFS) Remove(ctx context.Context, path string) error {
 	return fmt.Errorf("les archives sont montées en lecture seule")

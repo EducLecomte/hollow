@@ -41,6 +41,35 @@ func (e *EditorApp) createDir(name string) {
 	e.updateStatus(fmt.Sprintf("[green]Dossier créé: %s", name))
 }
 
+// renameElement renomme un fichier ou un dossier du panneau actif.
+func (e *EditorApp) renameElement(oldPath, newName string) {
+	p := e.ActivePanel
+	newPath := filepath.Join(p.CurrentDir, newName)
+	if oldPath == newPath {
+		e.updateStatusTemp("[yellow]Le nom est inchangé")
+		return
+	}
+
+	if err := p.FileSystem.Rename(context.Background(), oldPath, newPath); err != nil {
+		e.updateStatusTemp(fmt.Sprintf("[red]Erreur renommage: %v", err))
+		return
+	}
+	e.refreshPanel(p)
+	e.updateStatusTemp(fmt.Sprintf("[green]Élément renommé: %s", newName))
+}
+
+// createSymbolicLink crée un lien symbolique dans le répertoire du panneau actif.
+func (e *EditorApp) createSymbolicLink(target, linkName string) {
+	p := e.ActivePanel
+	linkPath := filepath.Join(p.CurrentDir, linkName)
+	if err := p.FileSystem.Symlink(context.Background(), target, linkPath); err != nil {
+		e.updateStatusTemp(fmt.Sprintf("[red]Erreur lien symbolique: %v", err))
+		return
+	}
+	e.refreshPanel(p)
+	e.updateStatusTemp(fmt.Sprintf("[green]Lien symbolique créé: %s", linkName))
+}
+
 // prepareCopyFile mémorise le chemin et le système de fichiers pour une action de collage ultérieure.
 func (e *EditorApp) prepareCopyFile(path string) {
 	e.CopiedPath = path
@@ -122,8 +151,8 @@ func (e *EditorApp) saveLastDir() {
 	_ = os.WriteFile(path, []byte(dir), 0644)
 }
 
-// transferSelected transfère l'élément sélectionné vers le répertoire de l'autre panneau (F6 / Shift+F6).
-func (e *EditorApp) transferSelected(reverse bool) {
+// copySelectedBetweenPanels copie l'élément sélectionné vers l'autre panneau (F6 / Shift+F6).
+func (e *EditorApp) copySelectedBetweenPanels(reverse bool) {
 	srcPanel := e.ActivePanel
 	dstPanel := e.InactivePanel()
 	if reverse {
@@ -132,7 +161,7 @@ func (e *EditorApp) transferSelected(reverse bool) {
 
 	item := srcPanel.GetSelectedItem()
 	if item == nil || item.Name == ".." {
-		e.updateStatusTemp("[yellow]Sélectionnez un fichier ou dossier valide à transférer")
+		e.updateStatusTemp("[yellow]Sélectionnez un fichier ou dossier valide à copier")
 		return
 	}
 
@@ -155,20 +184,20 @@ func (e *EditorApp) transferSelected(reverse bool) {
 			if exists {
 				e.showOverwriteConfirmation(item.Name, dstPanel.DisplayName(), func(overwrite bool) {
 					if overwrite {
-						e.executeTransfer(srcPanel, dstPanel, srcPath, dstPath, item.Name)
+						e.executeCopyBetweenPanels(srcPanel, dstPanel, srcPath, dstPath, item.Name)
 					}
 				})
 			} else {
-				e.executeTransfer(srcPanel, dstPanel, srcPath, dstPath, item.Name)
+				e.executeCopyBetweenPanels(srcPanel, dstPanel, srcPath, dstPath, item.Name)
 			}
 		})
 	}()
 }
 
-// executeTransfer lance la copie asynchrone entre deux panneaux avec dialogue d'attente et bouton Annuler.
-func (e *EditorApp) executeTransfer(srcPanel, dstPanel *PanelState, srcPath, dstPath, itemName string) {
+// executeCopyBetweenPanels lance la copie asynchrone entre deux panneaux avec dialogue d'attente et bouton Annuler.
+func (e *EditorApp) executeCopyBetweenPanels(srcPanel, dstPanel *PanelState, srcPath, dstPath, itemName string) {
 	ctx, cancel := context.WithCancel(context.Background())
-	e.showLoadingDialog("Transfert en cours",
+	e.showLoadingDialog("Copie en cours",
 		fmt.Sprintf("Copie de : %s\nDe : [%s] %s\nVers : [%s] %s",
 			itemName, srcPanel.DisplayName(), srcPanel.CurrentDir, dstPanel.DisplayName(), dstPanel.CurrentDir),
 		cancel)
@@ -180,12 +209,12 @@ func (e *EditorApp) executeTransfer(srcPanel, dstPanel *PanelState, srcPath, dst
 			e.Pages.RemovePage("loading")
 			if err != nil {
 				if err == context.Canceled {
-					e.updateStatusTemp("[yellow]Transfert annulé.")
+					e.updateStatusTemp("[yellow]Copie annulée.")
 				} else {
-					e.updateStatusTemp(fmt.Sprintf("[red]Erreur transfert: %v", err))
+					e.updateStatusTemp(fmt.Sprintf("[red]Erreur copie: %v", err))
 				}
 			} else {
-				e.updateStatusTemp(fmt.Sprintf("[green]Transfert réussi: %s", itemName))
+				e.updateStatusTemp(fmt.Sprintf("[green]Copie réussie: %s", itemName))
 				// Rafraîchissement des deux panneaux
 				e.refreshPanel(srcPanel)
 				e.refreshPanel(dstPanel)

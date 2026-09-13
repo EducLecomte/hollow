@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/EducLecomte/hollow/internal/utils"
 	"github.com/EducLecomte/hollow/internal/vfs"
@@ -96,7 +97,7 @@ func (e *EditorApp) showDeleteConfirmation() {
 	e.Pages.AddPage("delete", modal, true, true)
 }
 
-// showOverwriteConfirmation demande confirmation avant d'écraser un fichier existant lors d'un transfert.
+// showOverwriteConfirmation demande confirmation avant d'écraser un fichier existant lors d'une copie.
 func (e *EditorApp) showOverwriteConfirmation(fileName, destPanelName string, onChoice func(overwrite bool)) {
 	previousFocus := e.App.GetFocus()
 	modal := tview.NewModal().
@@ -151,6 +152,82 @@ func (e *EditorApp) showNewElementDialog() {
 	})
 	form.SetBorder(true).SetTitle(fmt.Sprintf(" Créer un élément [%s] ", p.DisplayName())).SetTitleAlign(tview.AlignCenter)
 	e.showCenteredDialog("new_element", form, 60, 9)
+}
+
+// showRenameDialog affiche une fenêtre de saisie pour renommer un fichier ou un dossier.
+func (e *EditorApp) showRenameDialog() {
+	p := e.ActivePanel
+	item := p.GetSelectedItem()
+	if item == nil {
+		return
+	}
+
+	oldPath := filepath.Join(p.CurrentDir, item.Name)
+	form := tview.NewForm()
+	form.AddInputField("Nouveau nom", item.Name, 40, nil, nil)
+	form.AddButton("Renommer", func() {
+		newName := form.GetFormItem(0).(*tview.InputField).GetText()
+		if newName == "" || newName == "." || newName == ".." || strings.ContainsAny(newName, "/\\") {
+			e.updateStatusTemp("[red]Nom invalide")
+			return
+		}
+		e.Pages.RemovePage("rename")
+		e.renameElement(oldPath, newName)
+		e.App.SetFocus(p.List)
+	})
+	form.AddButton("Annuler", func() {
+		e.Pages.RemovePage("rename")
+		e.App.SetFocus(p.List)
+	})
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			e.Pages.RemovePage("rename")
+			e.App.SetFocus(p.List)
+			return nil
+		}
+		return event
+	})
+	form.SetBorder(true).SetTitle(fmt.Sprintf(" Renommer [%s] ", p.DisplayName())).SetTitleAlign(tview.AlignCenter)
+	e.showCenteredDialog("rename", form, 60, 9)
+}
+
+// showSymlinkDialog affiche une fenêtre de saisie pour créer un lien symbolique.
+func (e *EditorApp) showSymlinkDialog() {
+	p := e.ActivePanel
+	item := p.GetSelectedItem()
+	if item == nil {
+		return
+	}
+
+	target := filepath.Join(p.CurrentDir, item.Name)
+	form := tview.NewForm()
+	form.AddInputField("Cible", target, 50, nil, nil)
+	form.AddInputField("Nom du lien", item.Name+".link", 40, nil, nil)
+	form.AddButton("Créer", func() {
+		targetPath := form.GetFormItem(0).(*tview.InputField).GetText()
+		linkName := form.GetFormItem(1).(*tview.InputField).GetText()
+		if targetPath == "" || linkName == "" || linkName == "." || linkName == ".." || strings.ContainsAny(linkName, "/\\") {
+			e.updateStatusTemp("[red]Cible ou nom de lien invalide")
+			return
+		}
+		e.Pages.RemovePage("symlink")
+		e.createSymbolicLink(targetPath, linkName)
+		e.App.SetFocus(p.List)
+	})
+	form.AddButton("Annuler", func() {
+		e.Pages.RemovePage("symlink")
+		e.App.SetFocus(p.List)
+	})
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			e.Pages.RemovePage("symlink")
+			e.App.SetFocus(p.List)
+			return nil
+		}
+		return event
+	})
+	form.SetBorder(true).SetTitle(fmt.Sprintf(" Lien symbolique [%s] ", p.DisplayName())).SetTitleAlign(tview.AlignCenter)
+	e.showCenteredDialog("symlink", form, 70, 11)
 }
 
 // showSaveConfirmation demande confirmation avant de fermer l'éditeur s'il y a des modifications.

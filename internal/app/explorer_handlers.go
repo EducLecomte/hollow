@@ -15,10 +15,10 @@ func (e *EditorApp) setupExplorerHandlers() {
 // setupPanelHandlers configure les raccourcis spécifiques à chaque panneau.
 func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 	p.List.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		// Shift+F6 pour transférer en sens inverse lorsque le double panneau est actif
+		// Shift+F6 pour copier en sens inverse lorsque le double panneau est actif
 		if (event.Key() == tcell.KeyF6 && (event.Modifiers()&tcell.ModShift != 0)) || event.Key() == tcell.KeyF18 {
 			if e.IsDualPane() {
-				e.transferSelected(true)
+				e.copySelectedBetweenPanels(true)
 				return nil
 			}
 		}
@@ -42,21 +42,27 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 			}
 			return nil
 		case tcell.KeyEscape:
-			if e.TransferMode {
-				e.toggleTransferMode()
+			if e.DualPaneMode {
+				e.toggleDualPaneMode()
 				return nil
 			}
 		case tcell.KeyF6:
 			if !e.IsDualPane() {
-				// En mode standard (explorateur + visualiseur), F6 bascule en mode transfert (double panneau)
-				e.toggleTransferMode()
+				// En mode standard (explorateur + visualiseur), F6 bascule en mode double panneau
+				e.toggleDualPaneMode()
 			} else {
-				// En mode double panneau, F6 déclenche le transfert vers l'autre panneau
-				e.transferSelected(false)
+				// En mode double panneau, F6 copie vers l'autre panneau
+				e.copySelectedBetweenPanels(false)
 			}
 			return nil
+		case tcell.KeyF4:
+			e.showSymlinkDialog()
+			return nil
 		case tcell.KeyCtrlT:
-			e.toggleTransferMode()
+			e.toggleDualPaneMode()
+			return nil
+		case tcell.KeyCtrlR:
+			e.showRenameDialog()
 			return nil
 		case tcell.KeyCtrlB:
 			e.toggleFavorites()

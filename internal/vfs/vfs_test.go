@@ -104,20 +104,42 @@ func TestLocalFSOperations(t *testing.T) {
 		t.Fatalf("LocalFS.Mkdir failed: %v", err)
 	}
 
+	// Rename
+	renamedFile := filepath.Join(tempDir, "renamed_test.txt")
+	if err := fs.Rename(ctx, testFile, renamedFile); err != nil {
+		t.Fatalf("LocalFS.Rename failed: %v", err)
+	}
+	if _, err := fs.Stat(ctx, renamedFile); err != nil {
+		t.Fatalf("Renamed file should exist: %v", err)
+	}
+
+	// Symlink
+	linkPath := filepath.Join(tempDir, "test_link")
+	if err := fs.Symlink(ctx, renamedFile, linkPath); err != nil {
+		t.Fatalf("LocalFS.Symlink failed: %v", err)
+	}
+	linkTarget, err := os.Readlink(linkPath)
+	if err != nil || linkTarget != renamedFile {
+		t.Errorf("Symlink target mismatch: target=%s, err=%v", linkTarget, err)
+	}
+
 	// List
 	entries, err := fs.List(ctx, tempDir)
 	if err != nil {
 		t.Fatalf("LocalFS.List failed: %v", err)
 	}
-	if len(entries) != 2 {
-		t.Errorf("Expected 2 entries, got %d", len(entries))
+	if len(entries) != 3 {
+		t.Errorf("Expected 3 entries, got %d", len(entries))
 	}
 
 	// Remove
-	if err := fs.Remove(ctx, testFile); err != nil {
+	if err := fs.Remove(ctx, renamedFile); err != nil {
 		t.Fatalf("LocalFS.Remove failed: %v", err)
 	}
-	if _, err := fs.Stat(ctx, testFile); err == nil {
+	if err := fs.Remove(ctx, linkPath); err != nil {
+		t.Fatalf("LocalFS.Remove symlink failed: %v", err)
+	}
+	if _, err := fs.Stat(ctx, renamedFile); err == nil {
 		t.Errorf("File should not exist after Remove")
 	}
 }

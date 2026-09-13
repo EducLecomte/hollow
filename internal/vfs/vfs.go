@@ -31,6 +31,8 @@ type VFS interface {
 	Write(ctx context.Context, path string, data io.Reader) error
 	Mkdir(ctx context.Context, path string) error
 	Copy(ctx context.Context, src, dst string) error
+	Rename(ctx context.Context, src, dst string) error
+	Symlink(ctx context.Context, target, linkPath string) error
 	Remove(ctx context.Context, path string) error
 	Stat(ctx context.Context, path string) (FileInfo, error)
 	Chmod(ctx context.Context, path string, mode os.FileMode) error
@@ -173,6 +175,26 @@ func (l *LocalFS) Copy(ctx context.Context, src, dst string) error {
 	return err
 }
 
+// Rename renomme un fichier ou un répertoire local.
+func (l *LocalFS) Rename(ctx context.Context, src, dst string) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	return os.Rename(src, dst)
+}
+
+// Symlink crée un lien symbolique local vers la cible indiquée.
+func (l *LocalFS) Symlink(ctx context.Context, target, linkPath string) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+	}
+	return os.Symlink(target, linkPath)
+}
+
 // Remove supprime récursivement un fichier ou un répertoire.
 func (l *LocalFS) Remove(ctx context.Context, path string) error {
 	return os.RemoveAll(path)
@@ -232,10 +254,10 @@ func (l *LocalFS) Chown(ctx context.Context, path, owner, group string) error {
 		return ctx.Err()
 	default:
 	}
-	
+
 	uid := -1
 	gid := -1
-	
+
 	if owner != "" {
 		u, err := user.Lookup(owner)
 		if err == nil {
@@ -248,7 +270,7 @@ func (l *LocalFS) Chown(ctx context.Context, path, owner, group string) error {
 			fmt.Sscanf(g.Gid, "%d", &gid)
 		}
 	}
-	
+
 	return os.Chown(path, uid, gid)
 }
 

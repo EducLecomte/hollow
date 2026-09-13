@@ -78,10 +78,10 @@ func TestEditorAppDualPaneLifecycle(t *testing.T) {
 		t.Errorf("Expected LeftPanel to be active by default")
 	}
 
-	// 2. Activation manuelle du mode transfert
-	app.toggleTransferMode()
+	// 2. Activation manuelle du mode double panneau
+	app.toggleDualPaneMode()
 	if !app.IsDualPane() {
-		t.Errorf("Expected IsDualPane to be true after toggleTransferMode")
+		t.Errorf("Expected IsDualPane to be true after toggleDualPaneMode")
 	}
 
 	// 3. Bascule de panneau en mode double panneau
@@ -93,10 +93,10 @@ func TestEditorAppDualPaneLifecycle(t *testing.T) {
 		t.Errorf("Expected LeftPanel to be inactive after SwitchActivePanel")
 	}
 
-	// 4. Désactivation du mode transfert -> retour au mode par défaut
-	app.toggleTransferMode()
+	// 4. Désactivation du mode double panneau -> retour au mode par défaut
+	app.toggleDualPaneMode()
 	if app.IsDualPane() {
-		t.Errorf("Expected IsDualPane to be false after toggleTransferMode")
+		t.Errorf("Expected IsDualPane to be false after toggleDualPaneMode")
 	}
 	if app.ActivePanel != app.LeftPanel {
 		t.Errorf("Expected LeftPanel to be active after leaving transfer mode")

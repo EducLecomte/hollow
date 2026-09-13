@@ -37,7 +37,7 @@ func (e *EditorApp) setupViewerHandlers() {
 			return nil
 		}
 		if key == tcell.KeyF6 || key == tcell.KeyCtrlT {
-			e.toggleTransferMode()
+			e.toggleDualPaneMode()
 			return nil
 		}
 		if key == tcell.KeyCtrlX {

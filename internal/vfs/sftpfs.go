@@ -193,6 +193,22 @@ func (s *SftpFS) Copy(ctx context.Context, src, dst string) error {
 	return fmt.Errorf("la copie directe n'est pas supportée en SFTP, utilisez CopyRecursiveBetweenVFS")
 }
 
+// Rename renomme un fichier ou un répertoire distant via SFTP.
+func (s *SftpFS) Rename(ctx context.Context, src, dst string) error {
+	if err := s.ensureConn(ctx); err != nil {
+		return err
+	}
+	return s.sftpClient.Rename(src, dst)
+}
+
+// Symlink crée un lien symbolique distant via SFTP.
+func (s *SftpFS) Symlink(ctx context.Context, target, linkPath string) error {
+	if err := s.ensureConn(ctx); err != nil {
+		return err
+	}
+	return s.sftpClient.Symlink(target, linkPath)
+}
+
 // Remove supprime un fichier ou un dossier (de façon récursive).
 func (s *SftpFS) Remove(ctx context.Context, path string) error {
 	if err := s.ensureConn(ctx); err != nil {

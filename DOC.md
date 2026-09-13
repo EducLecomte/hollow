@@ -85,8 +85,8 @@ L'application alterne entre trois dispositions, reconstruites à la volée par `
 
 | Mode | Disposition | Déclenchement |
 | :--- | :--- | :--- |
-| **Par défaut** | Explorateur (gauche, 1 part) + Visualiseur (droite, 2 parts ≈ 66 %) | État initial, retour d'un transfert/déconnexion |
-| **Double panneau** | Deux panneaux à 50/50 | Connexion FTP/FTPS/SFTP, ou mode transfert actif (`F6`/`Ctrl+T`) |
+| **Par défaut** | Explorateur (gauche, 1 part) + Visualiseur (droite, 2 parts ≈ 66 %) | État initial, retour du double panneau/déconnexion |
+| **Double panneau** | Deux panneaux à 50/50 | Connexion FTP/FTPS/SFTP, ou activation du mode double panneau (`F6`/`Ctrl+T`) |
 | **Éditeur** | Plein écran : numéros de ligne (4 colonnes) + zone de texte sans retour à la ligne + pied de page Nano | `Entrée` sur un fichier, ou argument fichier au lancement |
 
 Ensemble avec ces zones :
@@ -132,7 +132,7 @@ Les raccourcis ci-dessous sont implémentés dans `handlers.go` (globaux), `expl
 | `F3` | Dialogue de connexion FTP/FTPS/SFTP |
 | `F9` | Extraire l'archive sélectionnée (raccourci global) |
 | `Ctrl + B` | Afficher / masquer la barre des favoris |
-| `Ctrl + T` | Activer / désactiver le mode transfert (double panneau local) |
+| `Ctrl + T` | Activer / désactiver le double panneau local (mode d'affichage) |
 | `Ctrl + F` | Recherche globale (fuzzy finder) |
 | `Ctrl + C` | Ignorée (protège l'interface) |
 
@@ -147,16 +147,18 @@ Toute combinaison `Alt` est absorbée. Les touches `Ctrl` non listées explicite
 | `Entrée` | Ouvrir un fichier / entrer dans un dossier ou une archive |
 | `Tab` | Panneau opposé (double panneau) ; visualiseur (mode simple) |
 | `Shift + Tab` | Favoris si visibles (depuis le panneau gauche) ; panneau opposé (double) ; visualiseur (simple) |
-| `Esc` | Quitter le mode transfert (si actif) |
+| `Esc` | Quitter le double panneau (si activé manuellement) |
+| `F4` | Créer un lien symbolique vers la cible indiquée |
 | `F5` | Modifier les permissions / propriétaire / groupe (chmod/chown, option récursive) |
-| `F6` | Transférer la sélection vers l'autre panneau (double) ; activer le mode transfert (simple) |
-| `Shift + F6` (ou `F18`) | Transférer **depuis** l'autre panneau (double) |
+| `F6` | Activer le double panneau local si besoin ; sinon copier la sélection vers l'autre panneau |
+| `Shift + F6` (ou `F18`) | Copier **depuis** l'autre panneau (double) |
 | `F7` | Créer un fichier ou un dossier |
 | `F9` / `Ctrl + E` | Extraire l'archive (ou l'élément dans l'archive) vers le panneau opposé |
 | `Suppr` | Supprimer l'élément sélectionné (avec confirmation) |
 | `Ctrl + D` | Ajouter / retirer le **dossier sélectionné** des favoris |
 | `Ctrl + K` | Préparer la copie de la sélection (mémorise chemin + VFS source) |
 | `Ctrl + U` | Coller l'élément mémorisé dans le répertoire du panneau actif |
+| `Ctrl + R` | Renommer le fichier ou dossier sélectionné |
 | `Ctrl + X` | Quitter Hollow (avec confirmation) |
 
 ### 3.3 Visualiseur (lecture seule)
@@ -166,7 +168,7 @@ Toute combinaison `Alt` est absorbée. Les touches `Ctrl` non listées explicite
 | `F1` | Aide contextuelle |
 | `Tab` | Favoris (si visibles), sinon panneau gauche |
 | `Shift + Tab` | Panneau gauche |
-| `F6` / `Ctrl + T` | Basculer le mode transfert |
+| `F6` / `Ctrl + T` | Basculer en double panneau local |
 | `Ctrl + X` | Quitter Hollow (avec confirmation) |
 | Flèches | Défilement |
 
@@ -215,7 +217,7 @@ hollow/
 │   │   ├── viewer_handlers.go    # Raccourcis du visualiseur
 │   │   ├── editor_component.go   # Éditeur plein écran
 │   │   ├── dialogs.go        # Fenêtres modales (aide, connexion, chmod, …)
-│   │   ├── operations.go     # Créer, copier/coller, transférer, extraire, supprimer
+│   │   ├── operations.go     # Créer, copier/coller, copier entre panneaux, extraire, supprimer
 │   │   ├── fuzzy.go          # Fuzzy finder
 │   │   ├── favorites.go      # Favoris persistés
 │   │   └── panel_test.go     # Tests unitaires de l'état des panneaux
@@ -251,17 +253,17 @@ hollow/
 
 - `App`, `Pages` : infrastructure `tview` ;
 - `LeftPanel`, `RightPanel`, `ActivePanel` : les `*PanelState` ;
-- `TransferMode` : mode double panneau local activé manuellement ;
+- `DualPaneMode` : état du mode double panneau local activé manuellement ;
 - `PathBar`, `Viewer`, `Status`, `FavList` : zones permanentes ;
 - `FilePath`, `CopiedPath`, `CopiedFS`, `Clipboard`, `LastSearch` : état éditeur et presse-papiers ;
 - `Favorites`, `ShowFavs` : barre latérale ;
 - `previewCancel` : annulation de la prévisualisation en cours.
 
-`IsDualPane()` renvoie `true` si `TransferMode` est actif **ou** si l'un des deux panneaux est connecté à un serveur distant ; c'est lui qui pilote la reconstruction du layout.
+`IsDualPane()` renvoie `true` si `DualPaneMode` est actif **ou** si l'un des deux panneaux est connecté à un serveur distant ; c'est lui qui pilote la reconstruction du layout.
 
 **`PanelState`** (`panel.go`) encapsule un panneau : `ID`, `FileSystem` (le `vfs.VFS`), `CurrentDir`, `CurrentFiles`, `List` (widget), `InfoBox`, `Box` (bordure), `PreviousFS`/`PreviousDir` (mémo pour archive et déconnexion), `initialFileSelected` (pré-sélection au lancement) et `RemoteLabel` (étiquette du serveur).
 
-**Règle d'or de la concurrence** : tout appel `tview` effectué depuis une goroutine (chargements asynchrones, prévisualisations, transferts, statuts) doit passer par `e.App.QueueUpdateDraw(...)` — c'est le contrat respecté dans tout le code.
+**Règle d'or de la concurrence** : tout appel `tview` effectué depuis une goroutine (chargements asynchrones, prévisualisations, copies, statuts) doit passer par `e.App.QueueUpdateDraw(...)` — c'est le contrat respecté dans tout le code.
 
 ### 4.3 Helpers — `internal/utils`
 
@@ -271,7 +273,7 @@ hollow/
 - `GetBinaryFileDescription` : description amicale d'un fichier binaire d'après son extension (image, vidéo, exécutable, PDF, base de données, …) ;
 - `ShortenPath` : remplace le répertoire home par `~` ;
 - `Highlight` (`syntax.go`) : coloration syntaxique via **chroma** rendue en séquences ANSI, ensuite convertie par `tview.TranslateANSI` pour le visualiseur ;
-- Les constantes `HelpMsg*` / `HelpContent*` : rappels de la barre d'état et contenus complets de l'aide contextuelle (`F1`).
+- Les constantes `HelpMsg*` / `HelpContent*` : rappels de la barre d'état et contenus complets de l'aide contextuelle (`F1`), notamment la copie entre panneaux et le renommage (`Ctrl+R`).
 
 ---
 
@@ -290,6 +292,8 @@ type VFS interface {
     Stat(ctx context.Context, path string) (FileInfo, error)
     Chmod(ctx context.Context, path string, mode os.FileMode) error
     Chown(ctx context.Context, path, owner, group string) error
+    Rename(ctx context.Context, src, dst string) error
+    Symlink(ctx context.Context, target, linkPath string) error
     Close() error
 }
 ```
@@ -298,7 +302,7 @@ type VFS interface {
 
 Trois helpers récursifs opèrent sur n'importe quel `VFS` (et entre VFS différents) :
 
-- `CopyRecursiveBetweenVFS(ctx, srcFS, dstFS, src, dst)` : copie récursive entre deux systèmes (c'est lui qui réalise les transferts et l'extraction) ;
+- `CopyRecursiveBetweenVFS(ctx, srcFS, dstFS, src, dst)` : copie récursive entre deux systèmes (c'est lui qui réalise les copies entre panneaux et l'extraction) ;
 - `ChmodRecursive` / `ChownRecursive` : application récursive des propriétés.
 
 ### 5.1 `LocalFS`
@@ -316,7 +320,7 @@ Basé sur `github.com/jlaffaye/ftp` :
 - timeout de connexion de 5 secondes ;
 - FTPS : `tls.Config{InsecureSkipVerify: true}` (certificats auto-signés acceptés) ;
 - **reconnexion automatique** : chaque opération passe d'abord par `ensureConn`, qui teste la session avec une commande `NoOp` et, en cas d'échec, redial + re-login, avec notifications à l'UI via le callback `OnStatus` (`Reconnexion FTP en cours...`, `FTP reconnecté`) ;
-- `Read`/`Write` : lecteurs enveloppés (`cancelableReader`, `cancelableReadCloser`) pour respecter l'annulation du contexte pendant les transferts ;
+- `Read`/`Write` : lecteurs enveloppés (`cancelableReader`, `cancelableReadCloser`) pour respecter l'annulation du contexte pendant les copies ;
 - métadonnées **approximatives** : permissions affichées `rwxr-xr-x`, propriétaire/groupe `ftp`, mode `0755` ;
 - `Stat` : réalisé par `List` du dossier parent puis recherche du nom ;
 - `Remove` : `Delete`, avec repli sur `RemoveDirRecur` pour les dossiers ;
@@ -340,7 +344,7 @@ Basé sur `golang.org/x/crypto/ssh` + `github.com/pkg/sftp` :
 
 - `NewArchiveFS` analyse le fichier d'après son extension : `.zip` (`archive/zip`) ou `.tar`/`.gz`/`.tgz` (`archive/tar` + `compress/gzip`) ;
 - l'arborescence complète est construite **en mémoire** (nœuds `ArchiveNode` avec enfants en `map`) ;
-- toutes les opérations mutatives (`Write`, `Mkdir`, `Copy`, `Remove`, `Chmod`, `Chown`) retournent une erreur : les archives sont montées en **lecture seule** ;
+- toutes les opérations mutatives (`Write`, `Mkdir`, `Copy`, `Rename`, `Symlink`, `Remove`, `Chmod`, `Chown`) retournent une erreur : les archives sont montées en **lecture seule** ;
 - naviguer dans une archive sauvegarde le VFS hôte dans `PreviousFS`/`PreviousDir` du panneau, et `Close` de l'archive est appelé à la sortie.
 
 ---
@@ -349,7 +353,7 @@ Basé sur `golang.org/x/crypto/ssh` + `github.com/pkg/sftp` :
 
 ### 6.1 Chargements asynchrones et annulation
 
-Toute opération longue (listage d'un panneau, connexion, ouverture de fichier, transfert, extraction, ouverture d'archive) s'exécute dans une goroutine avec un `context.Context` annulable, et affiche une modale d'attente avec un bouton **Annuler** (`showLoadingDialog`). Seuls les résultats sont rendus à l'UI via `QueueUpdateDraw`. Les listes de panneaux ne sont jamais bloquantes : le chargement se fait en arrière-plan puis remplace le contenu.
+Toute opération longue (listage d'un panneau, connexion, ouverture de fichier, copie, extraction, ouverture d'archive) s'exécute dans une goroutine avec un `context.Context` annulable, et affiche une modale d'attente avec un bouton **Annuler** (`showLoadingDialog`). Seuls les résultats sont rendus à l'UI via `QueueUpdateDraw`. Les listes de panneaux ne sont jamais bloquantes : le chargement se fait en arrière-plan puis remplace le contenu.
 
 ### 6.2 Détection des fichiers binaires
 
@@ -365,17 +369,26 @@ En mode par défaut (explorateur + visualiseur), chaque changement de sélection
 - **binaire** : avertissement ;
 - **`..`** : visualiseur vidé.
 
-### 6.4 Mode transfert
+### 6.4 Double panneau et copie entre panneaux
 
-`toggleTransferMode()` (`F6` en mode simple, ou `Ctrl+T` partout) bascule en double panneau **local** : le panneau droit démarre sur le même dossier que le gauche. `Esc` (dans un panneau) le désactive et restaure le visualiseur.
+Il faut distinguer deux concepts différents :
 
-### 6.5 Transfert d'éléments (`F6` / `Shift+F6`)
+- le **double panneau** est un **mode d'affichage** ; il active deux colonnes synchronisées pour comparer ou manipuler deux répertoires côte à côte ;
+- la **copie entre panneaux** est une **opération de fichier** ; elle duplique un élément d'un panneau vers l'autre.
+
+`toggleDualPaneMode()` (`F6` en mode simple, ou `Ctrl+T` partout) active un **double panneau local** : le panneau droit démarre sur le même dossier que le gauche. `Esc` (dans un panneau) le désactive et restaure le visualiseur. Cela ne copie aucun fichier ; cela change seulement la disposition de l'interface.
+
+### 6.5 Copie entre panneaux (`F6` / `Shift+F6`)
+
+La copie est une action distincte de la disposition de l'interface :
 
 1. La source est le panneau actif, la destination le panneau opposé (`Shift+F6` inverse le sens) ;
 2. si source et destination sont identiques, l'opération est refusée ;
 3. un `Stat` de la destination avec timeout de 2 s détermine s'il existe un doublon → dialogue **Écraser / Annuler** ;
-4. `executeTransfer` lance `CopyRecursiveBetweenVFS` en arrière-plan, avec modale d'attente annulable affichant source et destination ;
+4. `executeCopyBetweenPanels` lance `CopyRecursiveBetweenVFS` en arrière-plan, avec modale d'attente annulable affichant source et destination ;
 5. à l'issue : les deux panneaux sont rafraîchis, et la barre d'état signale succès, annulation ou erreur.
+
+En résumé, **le double panneau sert à voir et manipuler deux emplacements**, tandis que **la copie entre panneaux duplique un élément vers l'autre emplacement**. La source n'est pas supprimée.
 
 ### 6.6 Extraction d'archives (`F9` / `Ctrl+E`)
 
@@ -386,11 +399,18 @@ Deux cas :
 
 Les deux cas passent par `CopyRecursiveBetweenVFS` avec modale d'annulation.
 
-### 6.7 Copier / coller et suppression
+### 6.7 Copier / coller / déplacer et suppression
+
+Hollow distingue clairement la **copie** et le **déplacement** :
 
 - `Ctrl+K` mémorise le chemin **et le VFS source** de la sélection ;
 - `Ctrl+U` colle dans le répertoire du panneau actif : en cas de nom existant, un suffixe `_copy`, `_copy2`, … est généré ; si le VFS source diffère du VFS cible, la copie croisée (`CopyRecursiveBetweenVFS`) est utilisée, sinon la copie native du VFS ;
+- `F6` / `Shift+F6` dans un double panneau lance une **copie** entre deux panneaux. L'élément est dupliqué dans le dossier de destination et reste présent dans le dossier source ;
+- `Ctrl+R` renomme l'élément sélectionné dans le panneau actif via `VFS.Rename` ; les noms vides, `.`/`..` et contenant un séparateur sont refusés ;
+- `F4` crée un lien symbolique via `VFS.Symlink` ; la cible est initialisée avec l'élément sélectionné et le nom du lien avec `<nom>.link` ;
 - `Suppr` : confirmation, puis `Remove` et rafraîchissement du panneau.
+
+Le presse-papiers (`Ctrl+K` / `Ctrl+U`) est donc un mécanisme de **copie préparée puis collée**, tandis que `F6` correspond à une **copie directe entre panneaux**.
 
 ### 6.8 Recherche globale (fuzzy finder, `Ctrl+F`)
 
@@ -420,12 +440,14 @@ Les deux cas passent par `CopyRecursiveBetweenVFS` avec modale d'annulation.
 | Création de dossier | ✅ (`0755`) | ✅ (un niveau) | ✅ (`MkdirAll`) | ❌ |
 | Suppression | ✅ récursive | ✅ (repli `RemoveDirRecur`) | ✅ récursive | ❌ |
 | Copie native | ✅ (anti-auto-referentiel) | ❌ | ❌ | ❌ |
+| Renommage | ✅ | ✅ | ✅ | ❌ |
+| Lien symbolique | ✅ | ❌ | ✅ | ❌ |
 | Chmod | ✅ | ❌ | ✅ | ❌ |
 | Chown | ✅ (noms) | ❌ | ✅ (UID/GID numériques uniquement) | ❌ |
 | Métadonnées fiables | ✅ (uid/gid résolus) | ⚠️ (0755, `ftp`) | ✅ (UID/GID bruts) | ⚠️ (issues de l'archive) |
 | Reconnexion auto | n/a | ✅ (`NoOp`) | ✅ | n/a |
 
-Pour les transferts entre panneaux et l'extraction, `CopyRecursiveBetweenVFS` contourne l'absence de copie native : tout VFS peut être source ou destination.
+Pour les copies entre panneaux et l'extraction, `CopyRecursiveBetweenVFS` contourne l'absence de copie native : tout VFS peut être source ou destination.
 
 ---
 

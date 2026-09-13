@@ -61,12 +61,12 @@ type FtpFS struct {
 // Si useTLS est vrai, la connexion sera initialisée avec un chiffrement TLS (FTPS).
 func NewFtpFS(host string, port int, user, password string, useTLS bool) (*FtpFS, error) {
 	addr := fmt.Sprintf("%s:%d", host, port)
-	
+
 	// Définition des options par défaut (timeout de connexion)
 	opts := []ftp.DialOption{
 		ftp.DialWithTimeout(5 * time.Second),
 	}
-	
+
 	// Si le chiffrement TLS est demandé, on l'ajoute aux options de connexion
 	if useTLS {
 		opts = append(opts, ftp.DialWithTLS(&tls.Config{
@@ -201,6 +201,19 @@ func (f *FtpFS) Copy(ctx context.Context, src, dst string) error {
 	return fmt.Errorf("la copie directe n'est pas supportée en FTP, utilisez CopyRecursiveBetweenVFS")
 }
 
+// Rename renomme un fichier ou un répertoire distant via FTP.
+func (f *FtpFS) Rename(ctx context.Context, src, dst string) error {
+	if err := f.ensureConn(ctx); err != nil {
+		return err
+	}
+	return f.conn.Rename(src, dst)
+}
+
+// Symlink indique que les liens symboliques ne sont pas supportés par ce client FTP.
+func (f *FtpFS) Symlink(ctx context.Context, target, linkPath string) error {
+	return fmt.Errorf("la création de liens symboliques n'est pas supportée via FTP")
+}
+
 func (f *FtpFS) Remove(ctx context.Context, path string) error {
 	if err := f.ensureConn(ctx); err != nil {
 		return err
@@ -218,7 +231,7 @@ func (f *FtpFS) Stat(ctx context.Context, path string) (FileInfo, error) {
 	}
 	dir := filepath.Dir(path)
 	name := filepath.Base(path)
-	
+
 	entries, err := f.conn.List(dir)
 	if err != nil {
 		return FileInfo{}, err

@@ -22,11 +22,11 @@ type EditorApp struct {
 
 	// Panneaux
 	LeftPanel   *PanelState // Panneau local principal
-	RightPanel  *PanelState // Panneau distant (FTP/SFTP) ou secondaire en mode transfert
+	RightPanel  *PanelState // Panneau distant (FTP/SFTP) ou secondaire en double panneau
 	ActivePanel *PanelState // Panneau sous focus
 
 	// Mode d'affichage
-	TransferMode bool // Mode transfert local activé manuellement
+	DualPaneMode bool // Mode double panneau local activé manuellement
 
 	// Composants de l'interface
 	PathBar *tview.TextView // Barre de chemin supérieure
@@ -94,7 +94,7 @@ func NewEditorApp(initialPath string) *EditorApp {
 		Viewer:       tview.NewTextView(),
 		Status:       tview.NewTextView(),
 		FavList:      tview.NewList(),
-		TransferMode: false,
+		DualPaneMode: false,
 	}
 
 	e.loadFavorites()
@@ -112,9 +112,30 @@ func NewEditorApp(initialPath string) *EditorApp {
 }
 
 // IsDualPane indique si l'interface doit afficher le double panneau
-// (connecté à un serveur distant FTP/SFTP ou en mode transfert manuel).
+// (connecté à un serveur distant FTP/SFTP ou en mode double panneau manuel).
 func (e *EditorApp) IsDualPane() bool {
-	return e.TransferMode || (e.RightPanel != nil && e.RightPanel.IsRemote()) || (e.LeftPanel != nil && e.LeftPanel.IsRemote())
+	return e.DualPaneMode || (e.RightPanel != nil && e.RightPanel.IsRemote()) || (e.LeftPanel != nil && e.LeftPanel.IsRemote())
+}
+
+// toggleDualPaneMode active ou désactive uniquement le mode d'affichage double panneau.
+func (e *EditorApp) toggleDualPaneMode() {
+	e.DualPaneMode = !e.DualPaneMode
+	if e.DualPaneMode {
+		if e.RightPanel.CurrentDir == "" {
+			e.RightPanel.CurrentDir = e.LeftPanel.CurrentDir
+		}
+		e.refreshPanel(e.RightPanel)
+		e.rebuildMainLayout()
+		e.updatePanelFocus()
+		e.updateStatusTemp("[green]Mode double panneau activé (F6: copier | Tab: basculer | Esc: fermer)")
+	} else {
+		e.ActivePanel = e.LeftPanel
+		e.rebuildMainLayout()
+		e.updatePanelFocus()
+		e.App.SetFocus(e.LeftPanel.List)
+		e.triggerViewerPreviewForCurrentItem()
+		e.updateStatusTemp("[yellow]Mode double panneau désactivé (visualiseur restauré)")
+	}
 }
 
 // InactivePanel renvoie le panneau opposé au panneau actif.
@@ -154,27 +175,6 @@ func (e *EditorApp) updatePanelFocus() {
 		} else {
 			e.updateStatus(utils.HelpMsgDefault)
 		}
-	}
-}
-
-// toggleTransferMode active ou désactive le mode double panneau local (mode transfert).
-func (e *EditorApp) toggleTransferMode() {
-	e.TransferMode = !e.TransferMode
-	if e.TransferMode {
-		if e.RightPanel.CurrentDir == "" {
-			e.RightPanel.CurrentDir = e.LeftPanel.CurrentDir
-		}
-		e.refreshPanel(e.RightPanel)
-		e.rebuildMainLayout()
-		e.updatePanelFocus()
-		e.updateStatusTemp("[green]Mode Transfert activé (F6: transférer | Tab: basculer | Esc: fermer)")
-	} else {
-		e.ActivePanel = e.LeftPanel
-		e.rebuildMainLayout()
-		e.updatePanelFocus()
-		e.App.SetFocus(e.LeftPanel.List)
-		e.triggerViewerPreviewForCurrentItem()
-		e.updateStatusTemp("[yellow]Mode Transfert désactivé (visualiseur restauré)")
 	}
 }
 
