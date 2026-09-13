@@ -46,17 +46,11 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 				e.toggleDualPaneMode()
 				return nil
 			}
-		case tcell.KeyF6:
-			if !e.IsDualPane() {
-				// En mode standard (explorateur + visualiseur), F6 bascule en mode double panneau
-				e.toggleDualPaneMode()
-			} else {
-				// En mode double panneau, F6 copie vers l'autre panneau
-				e.copySelectedBetweenPanels(false)
-			}
-			return nil
-		case tcell.KeyF4:
+		case tcell.KeyF5:
 			e.showSymlinkDialog()
+			return nil
+		case tcell.KeyF6:
+			e.showChmodDialog()
 			return nil
 		case tcell.KeyCtrlT:
 			e.toggleDualPaneMode()
@@ -81,6 +75,9 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 		case tcell.KeyF7:
 			e.showNewElementDialog()
 			return nil
+		case tcell.KeyF8:
+			e.showCommandDialog()
+			return nil
 		case tcell.KeyCtrlK:
 			item := p.GetSelectedItem()
 			if item != nil {
@@ -95,9 +92,6 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 			return nil
 		case tcell.KeyDelete:
 			e.showDeleteConfirmation()
-			return nil
-		case tcell.KeyF5:
-			e.showChmodDialog()
 			return nil
 		}
 		return event

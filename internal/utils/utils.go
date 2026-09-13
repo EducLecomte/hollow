@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	HelpMsgDefault = "[yellow]F1:[white] Aide | [yellow]F3:[white] FTP/SFTP | [yellow]F4:[white] Lien | [yellow]F5:[white] Droits | [yellow]F6:[white] Double panneau | [yellow]F7:[white] Créer | [yellow]F9:[white] Extraire | [yellow]Suppr:[white] Suppr | [yellow]Tab:[white] Visualiseur"
-	HelpMsgDual    = "[yellow]F1:[white] Aide | [yellow]F5:[white] Droits | [yellow]F6:[white] Copier | [yellow]F7:[white] Créer | [yellow]F9:[white] Extraire | [yellow]Tab:[white] Panneau | [yellow]Suppr:[white] Suppr | [yellow]Esc:[white] Quitter"
+	HelpMsgDefault = "[yellow]F1:[white] Aide | [yellow]F3:[white] FTP/SFTP | [yellow]F5:[white] Lien | [yellow]F6:[white] Droits | [yellow]F7:[white] Créer | [yellow]F8:[white] Commande | [yellow]F9:[white] Extraire | [yellow]Suppr:[white] Suppr | [yellow]Tab:[white] Visualiseur"
+	HelpMsgDual    = "[yellow]F1:[white] Aide | [yellow]F5:[white] Lien | [yellow]F6:[white] Droits | [yellow]F7:[white] Créer | [yellow]F8:[white] Commande | [yellow]F9:[white] Extraire | [yellow]Tab:[white] Panneau | [yellow]Suppr:[white] Suppr | [yellow]Esc:[white] Quitter"
 	HelpMsgEdit    = "[yellow]F1:[white] Aide | [yellow]Ctrl+S:[white] Sauver | [yellow]Ctrl+F:[white] Chercher | [yellow]Ctrl+K/U:[white] C/V | [yellow]Esc:[white] Quitter"
 	HelpMsgView    = "[yellow]F1:[white] Aide | [yellow]TAB/S-TAB:[white] Retour | [yellow]Ctrl+X:[white] Quitter | [yellow]Flèches:[white] Défiler"
 	HelpMsgArchive = "[yellow]F1:[white] Aide | [yellow]F9:[white] Extraire | [yellow]Entrée:[white] Aperçu"
@@ -20,11 +20,10 @@ const (
  ---------------------------
  F1          : Afficher cette aide
  F3          : Connexion FTP / SFTP
- F4          : Créer un lien symbolique (ln -s)
- F5          : Changer les permissions (Chmod)
- F6          : Copier vers l'autre panneau
- Shift + F6  : Copier depuis l'autre panneau
+	F5          : Créer un lien symbolique (ln -s)
+	F6          : Changer les permissions (Chmod)
  F7          : Créer un fichier ou un dossier
+	F8          : Exécuter une commande système dans le dossier courant
  F9          : Extraire l'archive vers l'autre panneau
 
  [yellow]Panneaux & Navigation[white]

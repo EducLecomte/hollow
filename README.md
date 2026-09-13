@@ -84,10 +84,10 @@ hollow README.md
 | :--- | :--- |
 | `F1` | Afficher l'aide contextuelle |
 | `F3` | Se connecter en FTP, FTPS ou SFTP |
-| `F4` | Créer un lien symbolique (`ln -s`) |
-| `F5` | Modifier les permissions et propriétaires |
-| `F6` | Activer le double panneau ou copier l'élément sélectionné vers l'autre panneau |
+| `F5` | Créer un lien symbolique (`ln -s`) |
+| `F6` | Modifier les permissions et propriétaires |
 | `F7` | Créer un fichier ou un dossier |
+| `F8` | Exécuter une commande système dans le dossier courant |
 | `F9` | Extraire une archive vers l'autre panneau |
 | `Tab` / `Shift + Tab` | Changer de panneau ou passer au visualiseur |
 | `Ctrl + B` | Afficher ou masquer les favoris |

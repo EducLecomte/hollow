@@ -55,6 +55,14 @@ func (e *EditorApp) setupHandlers() {
 			}
 			e.extractSelectedArchive()
 			return nil
+		case tcell.KeyF8:
+			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
+				e.Pages.HasPage("new_element") || e.Pages.HasPage("delete") ||
+				e.Pages.HasPage("ftp") || e.Pages.HasPage("overwrite_confirm") {
+				return event
+			}
+			e.showCommandDialog()
+			return nil
 		case tcell.KeyCtrlB:
 			e.toggleFavorites()
 			return nil
