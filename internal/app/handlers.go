@@ -46,7 +46,7 @@ func (e *EditorApp) setupHandlers() {
 			}
 			e.showFTPDialog()
 			return nil
-		case tcell.KeyF9:
+		case tcell.KeyF4:
 			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
 				e.Pages.HasPage("new_element") ||
 				e.Pages.HasPage("delete") || e.Pages.HasPage("save_confirm") ||
@@ -56,13 +56,7 @@ func (e *EditorApp) setupHandlers() {
 			e.extractSelectedArchive()
 			return nil
 		case tcell.KeyF8:
-			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
-				e.Pages.HasPage("new_element") || e.Pages.HasPage("delete") ||
-				e.Pages.HasPage("ftp") || e.Pages.HasPage("overwrite_confirm") {
-				return event
-			}
-			e.showCommandDialog()
-			return nil
+			return event
 		case tcell.KeyCtrlB:
 			e.toggleFavorites()
 			return nil

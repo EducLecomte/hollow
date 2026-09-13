@@ -49,6 +49,9 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 		case tcell.KeyF5:
 			e.showSymlinkDialog()
 			return nil
+		case tcell.KeyF4:
+			e.extractSelectedArchive()
+			return nil
 		case tcell.KeyF6:
 			e.showChmodDialog()
 			return nil
@@ -76,7 +79,11 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 			e.showNewElementDialog()
 			return nil
 		case tcell.KeyF8:
-			e.showCommandDialog()
+			if !e.IsDualPane() {
+				e.toggleDualPaneMode()
+			} else {
+				e.copySelectedBetweenPanels(false)
+			}
 			return nil
 		case tcell.KeyCtrlK:
 			item := p.GetSelectedItem()
@@ -87,7 +94,7 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 		case tcell.KeyCtrlU:
 			e.pasteFile()
 			return nil
-		case tcell.KeyCtrlE, tcell.KeyF9:
+		case tcell.KeyCtrlE:
 			e.extractSelectedArchive()
 			return nil
 		case tcell.KeyDelete:
