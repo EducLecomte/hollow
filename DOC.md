@@ -128,17 +128,17 @@ Les raccourcis ci-dessous sont implémentés dans `handlers.go` (globaux), `expl
 
 | Touche | Action |
 | :--- | :--- |
-| `F1` | Aide contextuelle (explorateur ou archive, selon le VFS du panneau actif) |
-| `F3` | Dialogue de connexion FTP/FTPS/SFTP |
-| `F4` | Extraire l'archive sélectionnée (raccourci global) |
+| `F1` | Aide contextuelle (explorateur ou archive, selon le VFS du panneau actif) — **pas dans l'éditeur** (voir [§3.4](#34-éditeur)) |
+| `F3` | Dialogue de connexion FTP/FTPS/SFTP — ignorée dans l'éditeur |
+| `F4` | Extraire l'archive sélectionnée (raccourci global) — ignorée dans l'éditeur |
 | `Ctrl + B` | Afficher / masquer la barre des favoris |
 | `Ctrl + T` | Activer / désactiver le double panneau local (mode d'affichage) |
-| `Ctrl + F` | Recherche globale (fuzzy finder) |
+| `Ctrl + F` | Recherche globale (fuzzy finder) — **pas dans l'éditeur** (recherche dans le document, voir [§3.4](#34-éditeur)) |
 | `Ctrl + C` | Ignorée (protège l'interface) |
 
 Toute combinaison `Alt` est absorbée. Les touches `Ctrl` non listées explicitement sont filtrées par une liste blanche.
 
-**Ordre de capture** : la capture d'entrée de l'application (`handlers.go`) s'exécute avant celle du widget focalisé (tview v0.42.0 : `Application.HandleInput` invoque d'abord `a.inputCapture`, et un retour `nil` consomme l'événement). Les raccourcis ci-dessus sont donc interceptés **dans tous les contextes, y compris l'éditeur** — c'est notamment le cas de `F1` et de `Ctrl+F` (voir [§3.4](#34-éditeur)).
+**Ordre de capture** : la capture d'entrée de l'application (`handlers.go`) s'exécute avant celle du widget focalisé (tview v0.42.0 : `Application.HandleInput` invoque d'abord `a.inputCapture`, et un retour `nil` consomme l'événement). Les raccourcis ci-dessus sont donc interceptés dans tous les contextes — **sauf dans l'éditeur** : quand la page `edit_screen` est ouverte, la capture globale laisse passer `F1` et `Ctrl+F` à la zone de texte (et ignore `F3`/`F4`), qui les gère elle-même (voir [§3.4](#34-éditeur)).
 
 ### 3.2 Explorateur (panneaux)
 
@@ -177,9 +177,9 @@ Toute combinaison `Alt` est absorbée. Les touches `Ctrl` non listées explicite
 
 | Touche | Action |
 | :--- | :--- |
-| `F1` | Aide contextuelle (explorateur ou archive, selon le VFS du panneau actif) |
+| `F1` | Aide dédiée de l'éditeur (`HelpContentEditor`) |
 | `Ctrl + S` | Sauvegarder |
-| `Ctrl + F` | Recherche globale (fuzzy finder) |
+| `Ctrl + F` | Recherche dans le document (insensible à la casse, boucle sur la fin de fichier) |
 | `Ctrl + K` | Couper la ligne courante (style Nano ; répéter pour concaténer les coupures) |
 | `Ctrl + U` | Coller le texte / le bloc coupé |
 | `Esc` / `Ctrl + X` | Fermer l'éditeur (demande de sauvegarde s'il y a des modifications) |
@@ -187,7 +187,7 @@ Toute combinaison `Alt` est absorbée. Les touches `Ctrl` non listées explicite
 
 Le titre de l'éditeur affiche `Édition: <fichier>` et un astérisque rouge `*` préfixe le titre dès que le contenu diffère de l'original.
 
-> **À noter** : `editor_component.go` définit aussi `F1` → aide dédiée `HelpContentEditor` et `Ctrl+F` → recherche dans le document (`showSearchDialog`). Ces deux gestionnaires sont **masqués** par la capture globale (qui s'exécute en premier, voir [§3.1](#31-globaux-tous-contextes)) : en pratique, `F1` affiche l'aide explorateur/archive et `Ctrl+F` ouvre le fuzzy finder global. La recherche dans le document existe donc dans le code mais n'est pas accessible au clavier.
+> **À noter** : la capture globale s'exécute avant celle de la zone de texte (voir [§3.1](#31-globaux-tous-contextes)), mais elle laisse passer `F1` et `Ctrl+F` quand la page `edit_screen` est ouverte : `F1` affiche donc l'aide dédiée de l'éditeur (`HelpContentEditor`) et `Ctrl+F` ouvre la recherche dans le document (`showSearchDialog`, insensible à la casse, boucle). `F3` et `F4` sont quant à elles ignorées dans l'éditeur.
 
 ### 3.5 Barre des favoris
 

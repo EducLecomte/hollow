@@ -36,7 +36,7 @@ func (e *EditorApp) setupViewerHandlers() {
 			e.App.SetFocus(e.LeftPanel.List)
 			return nil
 		}
-		if key == tcell.KeyF6 || key == tcell.KeyCtrlT {
+		if key == tcell.KeyF8 || key == tcell.KeyCtrlT {
 			e.toggleDualPaneMode()
 			return nil
 		}

@@ -24,7 +24,8 @@ func (e *EditorApp) setupHandlers() {
 			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
 				e.Pages.HasPage("new_element") ||
 				e.Pages.HasPage("delete") || e.Pages.HasPage("save_confirm") ||
-				e.Pages.HasPage("ftp") || e.Pages.HasPage("overwrite_confirm") {
+				e.Pages.HasPage("ftp") || e.Pages.HasPage("overwrite_confirm") ||
+				e.Pages.HasPage("edit_screen") {
 				return event
 			}
 
@@ -41,7 +42,8 @@ func (e *EditorApp) setupHandlers() {
 			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
 				e.Pages.HasPage("new_element") ||
 				e.Pages.HasPage("delete") || e.Pages.HasPage("ftp") ||
-				e.Pages.HasPage("overwrite_confirm") {
+				e.Pages.HasPage("overwrite_confirm") ||
+				e.Pages.HasPage("edit_screen") {
 				return event
 			}
 			e.showFTPDialog()
@@ -50,7 +52,8 @@ func (e *EditorApp) setupHandlers() {
 			if e.Pages.HasPage("help") || e.Pages.HasPage("quit") ||
 				e.Pages.HasPage("new_element") ||
 				e.Pages.HasPage("delete") || e.Pages.HasPage("save_confirm") ||
-				e.Pages.HasPage("ftp") || e.Pages.HasPage("overwrite_confirm") {
+				e.Pages.HasPage("ftp") || e.Pages.HasPage("overwrite_confirm") ||
+				e.Pages.HasPage("edit_screen") {
 				return event
 			}
 			e.extractSelectedArchive()
@@ -64,6 +67,10 @@ func (e *EditorApp) setupHandlers() {
 			e.toggleDualPaneMode()
 			return nil
 		case tcell.KeyCtrlF:
+			// Dans l'éditeur, Ctrl+F est géré par la zone de texte (recherche dans le document)
+			if e.Pages.HasPage("edit_screen") {
+				return event
+			}
 			e.showFuzzyFinder()
 			return nil
 		case tcell.KeyCtrlC:
