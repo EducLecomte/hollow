@@ -308,7 +308,7 @@ func (e *EditorApp) showFTPDialog() {
 		go func() {
 			err := e.connectRemote(proto, host, port, user, pass)
 			e.App.QueueUpdateDraw(func() {
-				e.Pages.RemovePage("loading")
+				e.removeLoadingPage()
 				if err != nil {
 					e.updateStatusTemp(fmt.Sprintf("[red]Erreur %s: %v", proto, err))
 				} else {
@@ -345,9 +345,28 @@ func (e *EditorApp) showLoadingDialog(title string, message string, cancelFunc c
 			if (buttonLabel == "Annuler" || buttonLabel == "") && cancelFunc != nil {
 				cancelFunc()
 			}
-			e.Pages.RemovePage("loading")
+			e.removeLoadingPage()
 		})
+	e.loadingModal = modal
 	e.Pages.AddPage("loading", modal, true, true)
+}
+
+// updateLoadingText met à jour le message de la modale de chargement en cours
+// (utilisé par les opérations longues pour afficher l'avancement).
+func (e *EditorApp) updateLoadingText(message string) {
+	e.App.QueueUpdateDraw(func() {
+		if e.loadingModal == nil || !e.Pages.HasPage("loading") {
+			e.loadingModal = nil
+			return
+		}
+		e.loadingModal.SetText(message)
+	})
+}
+
+// removeLoadingPage supprime la modale de chargement et oublie la référence vers elle.
+func (e *EditorApp) removeLoadingPage() {
+	e.loadingModal = nil
+	e.Pages.RemovePage("loading")
 }
 
 // showBinaryOpenConfirmation affiche un avertissement avant d'ouvrir un fichier binaire.

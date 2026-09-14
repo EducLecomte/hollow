@@ -194,19 +194,23 @@ func (e *EditorApp) copySelectedBetweenPanels(reverse bool) {
 	}()
 }
 
-// executeCopyBetweenPanels lance la copie asynchrone entre deux panneaux avec dialogue d'attente et bouton Annuler.
+// executeCopyBetweenPanels lance la copie asynchrone entre deux panneaux avec dialogue
+// d'attente, affichage de l'avancement en temps réel et bouton Annuler.
 func (e *EditorApp) executeCopyBetweenPanels(srcPanel, dstPanel *PanelState, srcPath, dstPath, itemName string) {
 	ctx, cancel := context.WithCancel(context.Background())
-	e.showLoadingDialog("Copie en cours",
-		fmt.Sprintf("Copie de : %s\nDe : [%s] %s\nVers : [%s] %s",
-			itemName, srcPanel.DisplayName(), srcPanel.CurrentDir, dstPanel.DisplayName(), dstPanel.CurrentDir),
-		cancel)
+	header := fmt.Sprintf("Copie de : %s\nDe : [%s] %s\nVers : [%s] %s",
+		itemName, srcPanel.DisplayName(), srcPanel.CurrentDir, dstPanel.DisplayName(), dstPanel.CurrentDir)
+	e.showLoadingDialog("Copie en cours", header+"\n\n...", cancel)
+
+	state := &progressState{}
+	e.startProgressTicker(ctx, state, header)
 
 	go func() {
-		err := vfs.CopyRecursiveBetweenVFS(ctx, srcPanel.FileSystem, dstPanel.FileSystem, srcPath, dstPath)
+		defer cancel()
+		err := copyTreeWithProgress(ctx, srcPanel.FileSystem, dstPanel.FileSystem, srcPath, dstPath, state)
 
 		e.App.QueueUpdateDraw(func() {
-			e.Pages.RemovePage("loading")
+			e.removeLoadingPage()
 			if err != nil {
 				if err == context.Canceled {
 					e.updateStatusTemp("[yellow]Copie annulée.")
@@ -281,17 +285,22 @@ func (e *EditorApp) extractSelectedArchive() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	e.showLoadingDialog("Extraction", fmt.Sprintf("Extraction de %s vers [%s]...", item.Name, dstPanel.DisplayName()), cancel)
+	header := fmt.Sprintf("Extraction de %s vers [%s]...", item.Name, dstPanel.DisplayName())
+	e.showLoadingDialog("Extraction", header+"\n\n...", cancel)
+
+	state := &progressState{}
+	e.startProgressTicker(ctx, state, header)
 
 	go func() {
+		defer cancel()
 		if tempFSToClose != nil {
 			defer tempFSToClose.Close()
 		}
 
-		err := vfs.CopyRecursiveBetweenVFS(ctx, srcFS, dstPanel.FileSystem, srcPath, destPath)
+		err := copyTreeWithProgress(ctx, srcFS, dstPanel.FileSystem, srcPath, destPath, state)
 
 		e.App.QueueUpdateDraw(func() {
-			e.Pages.RemovePage("loading")
+			e.removeLoadingPage()
 			if err != nil {
 				if err == context.Canceled {
 					e.updateStatusTemp("[yellow]Extraction annulée.")

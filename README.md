@@ -83,16 +83,20 @@ hollow README.md
 | Touche | Action |
 | :--- | :--- |
 | `F1` | Afficher l'aide contextuelle |
+| `F2` | Changer le critère de tri |
 | `F3` | Se connecter en FTP, FTPS ou SFTP |
 | `F4` | Extraire une archive vers l'autre panneau |
 | `F5` | Créer un lien symbolique (`ln -s`) |
 | `F6` | Modifier les permissions et propriétaires |
 | `F7` | Créer un fichier ou un dossier |
 | `F8` | Activer le double panneau ou copier l'élément sélectionné vers l'autre panneau |
+| `F9` / `Ctrl + H` | Afficher ou masquer les fichiers cachés |
 | `Tab` / `Shift + Tab` | Changer de panneau ou passer au visualiseur |
 | `Ctrl + B` | Afficher ou masquer les favoris |
 | `Ctrl + D` | Ajouter ou retirer le dossier courant des favoris |
 | `Ctrl + F` | Rechercher dans l'arborescence |
+| `Ctrl + O` | Inverser le sens du tri |
+| `Ctrl + T` | Activer ou désactiver le double panneau local |
 | `Ctrl + K` / `Ctrl + U` | Préparer puis coller une copie de l'élément sélectionné |
 | `Ctrl + R` | Renommer le fichier ou dossier sélectionné |
 | `Entrée` | Ouvrir un fichier, dossier ou archive |

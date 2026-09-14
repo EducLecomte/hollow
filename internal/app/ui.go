@@ -46,6 +46,20 @@ type EditorApp struct {
 	Favorites []Favorite
 	ShowFavs  bool
 
+	// Tri et affichage des fichiers
+	SortKey    int  // Critère de tri courant (voir display.go)
+	SortAsc    bool // Direction du tri (true = croissant)
+	ShowHidden bool // Afficher les fichiers cachés (commençant par '.')
+
+	// Barre d'état (raccourcis contextuels, voir statusbar.go)
+	statusMode     string
+	statusOverride string          // Message personnalisé, "" = afficher les raccourcis de statusMode
+	statusWidth    int             // Dernière largeur de terminal connue
+	editorFooter   *tview.TextView // Footer de l'écran éditeur
+
+	// Modale de chargement courante (transferts, etc.)
+	loadingModal *tview.Modal
+
 	// Gestion de l'asynchronisme
 	previewCancel context.CancelFunc
 }
@@ -95,6 +109,8 @@ func NewEditorApp(initialPath string) *EditorApp {
 		Status:       tview.NewTextView(),
 		FavList:      tview.NewList(),
 		DualPaneMode: false,
+		SortAsc:      true,
+		ShowHidden:   true,
 	}
 
 	e.loadFavorites()
@@ -167,15 +183,9 @@ func (e *EditorApp) updatePanelFocus() {
 	e.LeftPanel.UpdateTitle(e.ActivePanel == e.LeftPanel)
 	e.RightPanel.UpdateTitle(e.ActivePanel == e.RightPanel)
 
-	if e.IsDualPane() {
-		e.updateStatus(utils.HelpMsgDual)
-	} else {
-		if e.ActivePanel != nil && e.ActivePanel.IsArchive() {
-			e.updateStatus(utils.HelpMsgArchive)
-		} else {
-			e.updateStatus(utils.HelpMsgDefault)
-		}
-	}
+	e.statusOverride = ""
+	e.statusMode = e.panelStatusMode()
+	e.Status.SetText(renderBindingsBar(e.statusMode, e.statusWidth))
 }
 
 // setupPanelUI configure les comportements d'un panneau.
@@ -279,15 +289,35 @@ func (e *EditorApp) setupUI() {
 	e.Viewer.SetWrap(true)
 	e.Viewer.SetFocusFunc(func() {
 		e.Viewer.SetBorderColor(tcell.ColorYellow)
-		e.updateStatus(utils.HelpMsgView)
+		e.statusOverride = ""
+		e.statusMode = statusModeView
+		e.Status.SetText(renderBindingsBar(e.statusMode, e.statusWidth))
 	})
 	e.Viewer.SetBlurFunc(func() {
 		e.Viewer.SetBorderColor(tcell.ColorWhite)
 	})
 
-	// Barre d'état
+	// Barre d'état : raccourcis contextuels, adaptés à la largeur du terminal.
 	e.Status.SetDynamicColors(true).SetTextAlign(tview.AlignCenter)
-	e.updateStatus(utils.HelpMsgDefault)
+
+	// À chaque redimensionnement, on reconstruit la barre pour que les
+	// raccourcis affichés tiennent toujours dans la largeur du terminal.
+	e.App.SetBeforeDrawFunc(func(screen tcell.Screen) bool {
+		w, _ := screen.Size()
+		if w != e.statusWidth {
+			e.statusWidth = w
+			if e.statusOverride == "" {
+				e.Status.SetText(renderBindingsBar(e.statusMode, w))
+			}
+			if e.editorFooter != nil {
+				e.editorFooter.SetText(renderBindingsBar(statusModeEdit, w))
+			}
+		}
+		return false
+	})
+
+	e.statusMode = e.statusModeFromFocus()
+	e.Status.SetText(renderBindingsBar(e.statusMode, e.statusWidth))
 
 	// Barre des favoris
 	e.FavList.SetBorder(true).SetTitle(" Favoris ").SetBorderColor(tcell.ColorWhite)
@@ -343,26 +373,24 @@ func (e *EditorApp) rebuildMainLayout() {
 	}
 }
 
-// updateStatus met à jour le texte de la barre d'état.
+// updateStatus affiche un message personnalisé dans la barre d'état, en
+// remplacement des raccourcis contextuels.
 func (e *EditorApp) updateStatus(msg string) {
+	e.statusOverride = msg
 	e.Status.SetText(fmt.Sprintf("[yellow]%s", msg))
 }
 
-// updateStatusTemp affiche un message temporaire dans la barre d'état pendant 5 secondes.
+// updateStatusTemp affiche un message temporaire dans la barre d'état pendant
+// 5 secondes, puis restaure les raccourcis du contexte actif.
 func (e *EditorApp) updateStatusTemp(msg string) {
 	e.updateStatus(msg)
 
 	go func() {
 		time.Sleep(5 * time.Second)
 		e.App.QueueUpdateDraw(func() {
-			focus := e.App.GetFocus()
-			if focus == e.Viewer {
-				e.updateStatus(utils.HelpMsgView)
-			} else if _, ok := focus.(*tview.TextArea); ok {
-				e.updateStatus(utils.HelpMsgEdit)
-			} else {
-				e.updatePanelFocus()
-			}
+			e.statusOverride = ""
+			e.statusMode = e.statusModeFromFocus()
+			e.Status.SetText(renderBindingsBar(e.statusMode, e.statusWidth))
 		})
 	}()
 }

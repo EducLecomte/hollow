@@ -145,6 +145,7 @@ Toute combinaison `Alt` est absorbée. Les touches `Ctrl` non listées explicite
 | Touche | Action |
 | :--- | :--- |
 | `Entrée` | Ouvrir un fichier / entrer dans un dossier ou une archive |
+| `F2` | Changer le critère de tri (nom / taille / date) |
 | `Tab` | Panneau opposé (double panneau) ; visualiseur (mode simple) |
 | `Shift + Tab` | Favoris si visibles (depuis le panneau gauche) ; panneau opposé (double) ; visualiseur (simple) |
 | `Esc` | Quitter le double panneau (si activé manuellement) |
@@ -154,6 +155,9 @@ Toute combinaison `Alt` est absorbée. Les touches `Ctrl` non listées explicite
 | `Shift + F6` (ou `F18`) | Copier **depuis** l'autre panneau (double) |
 | `F7` | Créer un fichier ou un dossier |
 | `F8` | Activer le double panneau local si besoin ; sinon copier la sélection vers l'autre panneau |
+| `F9` / `Ctrl + H` | Afficher / masquer les fichiers cachés |
+| `Ctrl + O` | Inverser le sens du tri (croissant / décroissant) |
+| `Ctrl + T` | Activer / désactiver le double panneau local |
 | `Ctrl + E` | Extraire l'archive (ou l'élément dans l'archive) vers le panneau opposé |
 | `Suppr` | Supprimer l'élément sélectionné (avec confirmation) |
 | `Ctrl + D` | Ajouter / retirer le **dossier sélectionné** des favoris |

@@ -15,6 +15,7 @@ func (e *EditorApp) setupHandlers() {
 			tcell.KeyCtrlK: true, tcell.KeyCtrlU: true, tcell.KeyCtrlB: true,
 			tcell.KeyCtrlV: true, tcell.KeyCtrlX: true, tcell.KeyCtrlE: true,
 			tcell.KeyCtrlN: true, tcell.KeyCtrlT: true, tcell.KeyCtrlR: true,
+			tcell.KeyCtrlO: true, tcell.KeyCtrlZ: true, tcell.KeyCtrlY: true,
 			tcell.KeyTab: true, tcell.KeyEnter: true,
 			tcell.KeyBackspace: true, tcell.KeyBackspace2: true,
 		}
@@ -25,7 +26,7 @@ func (e *EditorApp) setupHandlers() {
 				e.Pages.HasPage("new_element") ||
 				e.Pages.HasPage("delete") || e.Pages.HasPage("save_confirm") ||
 				e.Pages.HasPage("ftp") || e.Pages.HasPage("overwrite_confirm") ||
-				e.Pages.HasPage("edit_screen") {
+				e.Pages.HasPage("edit_screen") || e.Pages.HasPage("replace") {
 				return event
 			}
 
@@ -43,7 +44,7 @@ func (e *EditorApp) setupHandlers() {
 				e.Pages.HasPage("new_element") ||
 				e.Pages.HasPage("delete") || e.Pages.HasPage("ftp") ||
 				e.Pages.HasPage("overwrite_confirm") ||
-				e.Pages.HasPage("edit_screen") {
+				e.Pages.HasPage("edit_screen") || e.Pages.HasPage("replace") {
 				return event
 			}
 			e.showFTPDialog()
@@ -53,7 +54,7 @@ func (e *EditorApp) setupHandlers() {
 				e.Pages.HasPage("new_element") ||
 				e.Pages.HasPage("delete") || e.Pages.HasPage("save_confirm") ||
 				e.Pages.HasPage("ftp") || e.Pages.HasPage("overwrite_confirm") ||
-				e.Pages.HasPage("edit_screen") {
+				e.Pages.HasPage("edit_screen") || e.Pages.HasPage("replace") {
 				return event
 			}
 			e.extractSelectedArchive()

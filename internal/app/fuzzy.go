@@ -34,7 +34,7 @@ func (e *EditorApp) showFuzzyFinder() {
 		list.Clear()
 		count := 0
 		tokens := strings.Split(strings.ToLower(text), " ")
-		
+
 		for _, path := range allFiles {
 			lowerPath := strings.ToLower(path)
 			match := true
@@ -75,7 +75,7 @@ func (e *EditorApp) showFuzzyFinder() {
 				} else if secondary == "~" {
 					fullPath, _ = os.UserHomeDir()
 				}
-				
+
 				e.openFile(fullPath, false)
 				e.Pages.RemovePage("fuzzy")
 			}
@@ -96,7 +96,7 @@ func (e *EditorApp) showFuzzyFinder() {
 		} else if secondaryText == "~" {
 			fullPath, _ = os.UserHomeDir()
 		}
-		
+
 		e.Pages.RemovePage("fuzzy")
 		e.openFile(fullPath, false)
 	})
@@ -133,11 +133,16 @@ func (e *EditorApp) scanFiles(dir string, results *[]string) {
 	}
 
 	for _, f := range files {
+		// Respecter le masque d'affichage des fichiers cachés
+		if !e.ShowHidden && strings.HasPrefix(f.Name, ".") {
+			continue
+		}
+
 		path := filepath.Join(dir, f.Name)
 		if f.IsDir {
 			// Exclusions système strictes pour la recherche globale
 			systemDirs := map[string]bool{
-				"proc": true, "sys": true, "dev": true, "run": true, 
+				"proc": true, "sys": true, "dev": true, "run": true,
 				"snap": true, "boot": true, "tmp": true, "node_modules": true,
 				"vendor": true, "lost+found": true, ".git": true,
 			}

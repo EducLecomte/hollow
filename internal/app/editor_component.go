@@ -77,11 +77,12 @@ func (e *EditorApp) showFullEditor(content string) {
 		updateTitle(textArea.GetText() != initialContent)
 	})
 
-	// Instructions en bas de l'éditeur
+	// Instructions en bas de l'éditeur (raccourcis adaptés à la largeur)
 	footer := tview.NewTextView().
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
-		SetText(utils.HelpMsgEdit)
+		SetText(renderBindingsBar(statusModeEdit, e.statusWidth))
+	e.editorFooter = footer
 
 	// Layout principal avec barre latérale
 	editorLayout := tview.NewFlex().SetDirection(tview.FlexColumn).
@@ -126,6 +127,10 @@ func (e *EditorApp) showFullEditor(content string) {
 		}
 		if key == tcell.KeyCtrlF {
 			e.showSearchDialog(textArea)
+			return nil
+		}
+		if key == tcell.KeyCtrlR {
+			e.showReplaceDialog(textArea)
 			return nil
 		}
 		if key == tcell.KeyCtrlK { // Couper la ligne (Nano style)
@@ -186,7 +191,7 @@ func (e *EditorApp) saveFromFullEditor(content string, onDone func()) {
 		err := e.ActivePanel.FileSystem.Write(ctx, e.FilePath, reader)
 
 		e.App.QueueUpdateDraw(func() {
-			e.Pages.RemovePage("loading")
+			e.removeLoadingPage()
 			if err != nil {
 				e.updateStatusTemp(fmt.Sprintf("[red]Erreur de sauvegarde: %v", err))
 			} else {
@@ -282,4 +287,144 @@ func (e *EditorApp) findNext(textArea *tview.TextArea, term string) {
 	} else {
 		e.updateStatusTemp("[yellow]Aucune occurrence trouvée")
 	}
+}
+
+// showReplaceDialog affiche une fenêtre de remplacement de texte dans le document actuellement ouvert.
+// La boîte de dialogue reste ouverte après chaque action pour permettre plusieurs remplacements.
+func (e *EditorApp) showReplaceDialog(textArea *tview.TextArea) {
+	form := tview.NewForm()
+	form.AddInputField("Rechercher", e.LastSearch, 40, nil, nil)
+	form.AddInputField("Remplacer par", "", 40, nil, nil)
+
+	closeDialog := func() {
+		e.Pages.RemovePage("replace")
+		e.App.SetFocus(textArea)
+	}
+
+	form.AddButton("Remplacer", func() {
+		term := form.GetFormItem(0).(*tview.InputField).GetText()
+		if term == "" {
+			e.updateStatusTemp("[yellow]Terme de recherche vide")
+			return
+		}
+		replacement := form.GetFormItem(1).(*tview.InputField).GetText()
+		e.replaceNext(textArea, term, replacement)
+	})
+	form.AddButton("Tout remplacer", func() {
+		term := form.GetFormItem(0).(*tview.InputField).GetText()
+		if term == "" {
+			e.updateStatusTemp("[yellow]Terme de recherche vide")
+			return
+		}
+		replacement := form.GetFormItem(1).(*tview.InputField).GetText()
+		e.replaceAll(textArea, term, replacement)
+	})
+	form.AddButton("Annuler", closeDialog)
+
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			closeDialog()
+			return nil
+		}
+		return event
+	})
+	form.SetBorder(true).SetTitle(" Remplacement ").SetTitleAlign(tview.AlignCenter)
+	e.showCenteredDialog("replace", form, 62, 11)
+}
+
+// nextMatch retourne les décalages (octets) du début et de la fin de la prochaine
+// occurrence insensible à la casse de term dans text, en cherchant à partir de from.
+func nextMatch(text, term string, from int) (start, end int, found bool) {
+	if term == "" || len(text) == 0 {
+		return 0, 0, false
+	}
+	if from < 0 {
+		from = 0
+	}
+	if from >= len(text) {
+		return 0, 0, false
+	}
+	idx := strings.Index(strings.ToLower(text[from:]), strings.ToLower(term))
+	if idx == -1 {
+		return 0, 0, false
+	}
+	start = from + idx
+	return start, start + len(term), true
+}
+
+// replaceNext remplace la prochaine occurrence du terme recherché et garde la boîte
+// de dialogue ouverte. La position du curseur et la vue sont centrées sur le résultat.
+func (e *EditorApp) replaceNext(textArea *tview.TextArea, term, replacement string) {
+	text := textArea.GetText()
+
+	from := 0
+	if term == e.LastSearch && e.LastSearchPos > 0 && e.LastSearchPos <= len(text) {
+		from = e.LastSearchPos
+	}
+
+	start, end, found := nextMatch(text, term, from)
+	if !found {
+		start, end, found = nextMatch(text, term, 0)
+	}
+	if !found {
+		e.updateStatusTemp("[yellow]Aucune occurrence trouvée")
+		return
+	}
+
+	textArea.Replace(start, end, replacement)
+
+	// Sélectionner la zone remplacée et centrer la vue verticalement
+	newEnd := start + len(replacement)
+	textArea.Select(start, newEnd)
+
+	linesBefore := strings.Split(textArea.GetText()[:start], "\n")
+	row := len(linesBefore) - 1
+	_, _, _, height := textArea.GetInnerRect()
+	if height <= 0 {
+		height = 20
+	}
+	targetOffset := row - (height / 2)
+	if targetOffset < 0 {
+		targetOffset = 0
+	}
+	textArea.SetOffset(targetOffset, 0)
+
+	e.LastSearch = term
+	e.LastSearchPos = newEnd
+	e.updateStatusTemp(fmt.Sprintf("[green]Remplacé: '%s'", term))
+}
+
+// replaceAll remplace toutes les occurrences du terme en une seule passe.
+// Une seule appel Replace = une seule entrée dans l'historique undo.
+func (e *EditorApp) replaceAll(textArea *tview.TextArea, term, replacement string) {
+	text := textArea.GetText()
+	lowerText := strings.ToLower(text)
+	lowerTerm := strings.ToLower(term)
+
+	var sb strings.Builder
+	pos := 0
+	count := 0
+	for {
+		idx := strings.Index(lowerText[pos:], lowerTerm)
+		if idx == -1 {
+			break
+		}
+		start := pos + idx
+		sb.WriteString(text[pos:start])
+		sb.WriteString(replacement)
+		pos = start + len(term)
+		count++
+	}
+	sb.WriteString(text[pos:])
+
+	if count == 0 {
+		e.updateStatusTemp("[yellow]Aucune occurrence trouvée")
+		return
+	}
+
+	textArea.Replace(0, len(text), sb.String())
+
+	e.LastSearch = term
+	e.LastSearchPos = 0
+	e.updateStatusTemp(fmt.Sprintf("[green]%d occurrence(s) remplacée(s)", count))
 }

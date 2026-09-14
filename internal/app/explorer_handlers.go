@@ -46,11 +46,28 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 				e.toggleDualPaneMode()
 				return nil
 			}
+		case tcell.KeyF2:
+			e.cycleSortKey()
+			return nil
 		case tcell.KeyF5:
 			e.showSymlinkDialog()
 			return nil
 		case tcell.KeyF4:
 			e.extractSelectedArchive()
+			return nil
+		case tcell.KeyF9:
+			e.toggleHiddenFiles()
+			return nil
+		case tcell.KeyBackspace, tcell.KeyCtrlH:
+			// La touche Ctrl+H envoie l'octet 0x08, que tcell décode
+			// toujours en KeyBackspace (idempotent avec le Backspace physique).
+			// Dans la liste de fichiers, le Backspace n'a pas d'autre rôle,
+			// il sert donc (comme Ctrl+H) à basculer l'affichage des fichiers cachés.
+			// Dans l'éditeur, KeyBackspace conserve son rôle natif (supprimer en arrière).
+			e.toggleHiddenFiles()
+			return nil
+		case tcell.KeyCtrlO:
+			e.toggleSortDirection()
 			return nil
 		case tcell.KeyF6:
 			e.showChmodDialog()

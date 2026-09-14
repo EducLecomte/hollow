@@ -8,28 +8,23 @@ import (
 )
 
 const (
-	HelpMsgDefault = "[yellow]F1:[white] Aide | [yellow]F3:[white] FTP/SFTP | [yellow]F4:[white] Extraire | [yellow]F5:[white] Lien | [yellow]F6:[white] Droits | [yellow]F7:[white] Créer | [yellow]F8:[white] Double panneau | [yellow]Suppr:[white] Suppr | [yellow]Tab:[white] Visualiseur"
-	HelpMsgDual    = "[yellow]F1:[white] Aide | [yellow]F4:[white] Extraire | [yellow]F5:[white] Lien | [yellow]F6:[white] Droits | [yellow]F7:[white] Créer | [yellow]F8:[white] Copier | [yellow]Tab:[white] Panneau | [yellow]Suppr:[white] Suppr | [yellow]Esc:[white] Quitter"
-	HelpMsgEdit    = "[yellow]F1:[white] Aide | [yellow]Ctrl+S:[white] Sauver | [yellow]Ctrl+F:[white] Chercher | [yellow]Ctrl+K/U:[white] C/V | [yellow]Esc:[white] Quitter"
-	HelpMsgView    = "[yellow]F1:[white] Aide | [yellow]TAB/S-TAB:[white] Retour | [yellow]Ctrl+X:[white] Quitter | [yellow]Flèches:[white] Défiler"
-	HelpMsgArchive = "[yellow]F1:[white] Aide | [yellow]F4:[white] Extraire | [yellow]Entrée:[white] Aperçu"
-	HelpMsgFiles   = HelpMsgDefault
-
 	HelpContentExplorer = `
  [yellow]Navigation & Double Panneau[white]
  ---------------------------
  F1		: Afficher cette aide
+ F2     : Changer le critère de tri
  F3     : Connexion FTP / SFTP
  F4     : Extraire l'archive vers l'autre panneau
  F5     : Créer un lien symbolique (ln -s)
  F6     : Changer les permissions (Chmod)
  F7     : Créer un fichier ou un dossier
  F8     : Activer le double panneau ou copier vers l'autre panneau
+ F9     : Afficher / masquer les fichiers cachés
 
  [yellow]Panneaux & Navigation[white]
  ---------------------------
  Tab         : Basculer entre panneau gauche et droit
- Ctrl + Q    : Activer/Désactiver aperçu (Quick View)
+ Ctrl + T    : Activer / désactiver le double panneau local
  Entrée      : Ouvrir un fichier / Entrer dans un dossier
  Suppr       : Supprimer l'élément sélectionné
  
@@ -42,12 +37,18 @@ const (
  Ctrl + R    : Renommer le fichier ou dossier sélectionné
  Ctrl + X    : Quitter l'application
 
- [yellow]Barre des Favoris (Active)[white]
- --------------------------
- 1 - 9       : Accès rapide direct au favori par son numéro
- Ctrl + N    : Renommer le favori sélectionné
- Suppr       : Supprimer le favori de la liste
- `
+  [yellow]Tri & Affichage[white]
+  -------------------------
+  F2          : Changer le critère de tri (nom / taille / date)
+  Ctrl + O    : Inverser le sens du tri (croissant / décroissant)
+	F9 / Ctrl+H : Afficher / masquer les fichiers cachés
+
+  [yellow]Barre des Favoris (Active)[white]
+  --------------------------
+  1 - 9       : Accès rapide direct au favori par son numéro
+  Ctrl + N    : Renommer le favori sélectionné
+  Suppr       : Supprimer le favori de la liste
+  `
 
 	HelpContentArchive = `
  [yellow]Exploration d'Archive[white]
@@ -62,20 +63,23 @@ const (
  `
 
 	HelpContentEditor = `
- [yellow]Édition de Texte[white]
- ----------------
- F1          : Afficher cette aide
- Ctrl + F    : Rechercher (Entrée pour suivant)
- Ctrl + K    : Couper la ligne (Nano style, concatène si répété)
- Ctrl + S    : Sauvegarder les modifications
- Ctrl + U    : Coller le texte ou le bloc coupé
- Ctrl + X    : Fermer l'éditeur (confirmation si modifié)
- 
- [yellow]Déplacement[white]
- -----------
- Flèches     : Se déplacer dans le texte
- Page Up/Down: Défilement rapide
- `
+  [yellow]Édition de Texte[white]
+  ----------------
+  F1          : Afficher cette aide
+  Ctrl + F    : Rechercher (Entrée pour suivant)
+  Ctrl + R    : Remplacer (occurrence suivante ou tout remplacer)
+  Ctrl + K    : Couper la ligne (Nano style, concatène si répété)
+  Ctrl + S    : Sauvegarder les modifications
+  Ctrl + U    : Coller le texte ou le bloc coupé
+  Ctrl + Z    : Annuler la dernière action
+  Ctrl + Y    : Rétablir l'action annulée
+  Ctrl + X    : Fermer l'éditeur (confirmation si modifié)
+  
+  [yellow]Déplacement[white]
+  -----------
+  Flèches     : Se déplacer dans le texte
+  Page Up/Down: Défilement rapide
+  `
 )
 
 func FormatSize(b int64) string {

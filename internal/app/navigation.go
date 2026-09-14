@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/EducLecomte/hollow/internal/utils"
@@ -38,16 +37,19 @@ func (e *EditorApp) refreshPanel(p *PanelState) {
 				return
 			}
 
-			// Tri des entrées : dossiers d'abord, puis fichiers par ordre alphabétique insensible à la casse
-			sort.Slice(files, func(i, j int) bool {
-				if files[i].IsDir && !files[j].IsDir {
-					return true
+			// Masquage des fichiers cachés (commençant par '.') si désactivé
+			if !e.ShowHidden {
+				visible := files[:0]
+				for _, f := range files {
+					if !strings.HasPrefix(f.Name, ".") {
+						visible = append(visible, f)
+					}
 				}
-				if !files[i].IsDir && files[j].IsDir {
-					return false
-				}
-				return strings.ToLower(files[i].Name) < strings.ToLower(files[j].Name)
-			})
+				files = visible
+			}
+
+			// Tri des entrées : dossiers d'abord, puis selon le critère et la direction choisis
+			e.sortFiles(files)
 
 			p.CurrentFiles = files
 			p.UpdateTitle(p == e.ActivePanel)
@@ -161,7 +163,7 @@ func (e *EditorApp) handleFileSelection(p *PanelState, index int) {
 			archiveFS, err := vfs.NewArchiveFS(ctx, targetPath)
 
 			e.App.QueueUpdateDraw(func() {
-				e.Pages.RemovePage("loading")
+				e.removeLoadingPage()
 
 				if err != nil {
 					if err == context.Canceled {
@@ -176,7 +178,7 @@ func (e *EditorApp) handleFileSelection(p *PanelState, index int) {
 				p.FileSystem = archiveFS
 				p.CurrentDir = "/"
 				e.refreshPanel(p)
-				e.updateStatus(utils.HelpMsgArchive)
+				e.statusMode = statusModeArchive
 				e.updateStatusTemp(fmt.Sprintf("[green]Exploration de l'archive: %s", file.Name))
 			})
 		}()
@@ -195,7 +197,7 @@ func (e *EditorApp) openFile(path string, force bool) {
 		reader, err := p.FileSystem.Read(ctx, path)
 		if err != nil {
 			e.App.QueueUpdateDraw(func() {
-				e.Pages.RemovePage("loading")
+				e.removeLoadingPage()
 				e.updateStatus(fmt.Sprintf("[red]Erreur lecture: %v", err))
 			})
 			return
@@ -217,7 +219,7 @@ func (e *EditorApp) openFile(path string, force bool) {
 
 			if !force && buf.Len() > 0 && utils.IsBinary(buf.Bytes()) {
 				e.App.QueueUpdateDraw(func() {
-					e.Pages.RemovePage("loading")
+					e.removeLoadingPage()
 					e.showBinaryOpenConfirmation(path, func() {
 						e.openFile(path, true)
 					})
@@ -230,7 +232,7 @@ func (e *EditorApp) openFile(path string, force bool) {
 			}
 			if err != nil {
 				e.App.QueueUpdateDraw(func() {
-					e.Pages.RemovePage("loading")
+					e.removeLoadingPage()
 					e.updateStatus(fmt.Sprintf("[red]Erreur de lecture: %v", err))
 				})
 				return
@@ -239,7 +241,7 @@ func (e *EditorApp) openFile(path string, force bool) {
 
 		content := strings.ReplaceAll(buf.String(), "\r", "")
 		e.App.QueueUpdateDraw(func() {
-			e.Pages.RemovePage("loading")
+			e.removeLoadingPage()
 			e.FilePath = path
 			e.showFullEditor(content)
 		})
