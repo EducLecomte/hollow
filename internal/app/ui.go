@@ -110,7 +110,7 @@ func NewEditorApp(initialPath string) *EditorApp {
 		FavList:      tview.NewList(),
 		DualPaneMode: false,
 		SortAsc:      true,
-		ShowHidden:   true,
+		ShowHidden:   false,
 	}
 
 	e.loadFavorites()
