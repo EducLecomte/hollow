@@ -87,6 +87,14 @@ function hollow() {
         cd \"\$(cat \"\$tmp_file\")\" && rm \"\$tmp_file\"
     fi
 }
+
+# Alias pour masquer les éditeurs et gestionnaires classiques
+alias nano='hollow'
+alias pico='hollow'
+alias mcedit='hollow'
+alias mc='hollow'
+export EDITOR='hollow'
+export VISUAL='hollow'
 "
 
 echo "Configuration du shell pour l'utilisateur : $ACTUAL_USER"
@@ -94,10 +102,24 @@ echo "Configuration du shell pour l'utilisateur : $ACTUAL_USER"
 for RC_FILE in "$ACTUAL_HOME/.bashrc" "$ACTUAL_HOME/.zshrc"; do
     if [ -f "$RC_FILE" ]; then
         if ! grep -q "function hollow()" "$RC_FILE"; then
-            echo "Ajout de la fonction hollow dans $RC_FILE..."
+            echo "Ajout de la fonction hollow et des alias dans $RC_FILE..."
             echo "$SHELL_FUNC" >> "$RC_FILE"
         else
-            echo "La fonction hollow est déjà présente dans $RC_FILE."
+            if ! grep -q "alias nano=" "$RC_FILE"; then
+                echo "Ajout des alias (nano, mcedit, mc...) dans $RC_FILE..."
+                cat << 'EOF' >> "$RC_FILE"
+
+# Alias pour masquer les éditeurs et gestionnaires classiques
+alias nano='hollow'
+alias pico='hollow'
+alias mcedit='hollow'
+alias mc='hollow'
+export EDITOR='hollow'
+export VISUAL='hollow'
+EOF
+            else
+                echo "La fonction hollow et ses alias sont déjà présents dans $RC_FILE."
+            fi
         fi
     fi
 done

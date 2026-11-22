@@ -68,3 +68,26 @@ else
 fi
 
 echo "Hollow $VERSION installé dans $INSTALL_DIR/$BINARY_NAME"
+
+PROFILE_D="/etc/profile.d"
+if [ -d "$PROFILE_D" ] && [ -w "$PROFILE_D" ]; then
+    cat << EOF > "$PROFILE_D/hollow.sh"
+# --- Hollow Shell Integration ---
+hollow() {
+    $INSTALL_DIR/$BINARY_NAME "\$@"
+    local tmp_file="/tmp/hollow_cwd_\$USER"
+    if [ -f "\$tmp_file" ]; then
+        cd "\$(cat "\$tmp_file")" && rm "\$tmp_file"
+    fi
+}
+
+alias nano='hollow'
+alias pico='hollow'
+alias mcedit='hollow'
+alias mc='hollow'
+export EDITOR='hollow'
+export VISUAL='hollow'
+EOF
+    chmod 644 "$PROFILE_D/hollow.sh"
+    echo "Intégration shell et alias configurés dans $PROFILE_D/hollow.sh"
+fi
