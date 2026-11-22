@@ -145,26 +145,27 @@ Toute combinaison `Alt` est absorbée. Les touches `Ctrl` non listées explicite
 | Touche | Action |
 | :--- | :--- |
 | `Entrée` | Ouvrir un fichier / entrer dans un dossier ou une archive |
+| `F1` | Afficher l'aide contextuelle |
 | `F2` | Changer le critère de tri (nom / taille / date) |
-| `Tab` | Panneau opposé (double panneau) ; visualiseur (mode simple) |
-| `Shift + Tab` | Favoris si visibles (depuis le panneau gauche) ; panneau opposé (double) ; visualiseur (simple) |
-| `Esc` | Quitter le double panneau (si activé manuellement) |
-| `F4` | Extraire l'archive (ou l'élément dans l'archive) vers le panneau opposé |
-| `F5` | Créer un lien symbolique vers la cible indiquée |
-| `F6` | Modifier les permissions / propriétaire / groupe (chmod/chown, option récursive) |
-| `Shift + F6` (ou `F18`) | Copier **depuis** l'autre panneau (double) |
-| `F7` | Créer un fichier ou un dossier |
-| `F8` | Activer le double panneau local si besoin ; sinon copier la sélection vers l'autre panneau |
-| `F9` / `Ctrl + H` | Afficher / masquer les fichiers cachés |
+| `F3` | Se connecter en FTP, FTPS ou SFTP |
+| `F4` | Extraire une archive vers l'autre panneau |
+| `F5` | Modifier les permissions et propriétaires (chmod/chown, option récursive) |
+| `F6` | Créer un lien symbolique vers la cible indiquée (`ln -s`) |
+| `F8` | Copier la sélection vers l'autre panneau (ou activer le double panneau local si besoin) |
+| `Shift + F8` / `Shift + F6` (ou `F20`/`F18`) | Copier **depuis** l'autre panneau (double) |
+| `Tab` / `Shift + Tab` | Changer de panneau ou passer au visualiseur |
+| `Ctrl + N` | Créer un fichier ou un dossier |
+| `Ctrl + F` | Rechercher dans l'arborescence (fuzzy finder) |
 | `Ctrl + O` | Inverser le sens du tri (croissant / décroissant) |
-| `Ctrl + T` | Activer / désactiver le double panneau local |
+| `Ctrl + H` | Afficher ou masquer les fichiers cachés |
+| `Ctrl + B` | Afficher ou masquer les favoris |
+| `Ctrl + D` | Ajouter ou retirer le dossier courant des favoris |
+| `Ctrl + T` | Activer ou désactiver le double panneau local |
 | `Ctrl + E` | Extraire l'archive (ou l'élément dans l'archive) vers le panneau opposé |
-| `Suppr` | Supprimer l'élément sélectionné (avec confirmation) |
-| `Ctrl + D` | Ajouter / retirer le **dossier sélectionné** des favoris |
-| `Ctrl + K` | Préparer la copie de la sélection (mémorise chemin + VFS source) |
-| `Ctrl + U` | Coller l'élément mémorisé dans le répertoire du panneau actif |
+| `Ctrl + K` / `Ctrl + U` | Préparer puis coller une copie de l'élément sélectionné |
 | `Ctrl + R` | Renommer le fichier ou dossier sélectionné |
-| `Ctrl + X` | Quitter Hollow (avec confirmation) |
+| `Suppr` | Supprimer l'élément sélectionné (avec confirmation) |
+| `Esc` / `Ctrl + X` | Quitter Hollow (avec confirmation) |
 
 ### 3.3 Visualiseur (lecture seule)
 
@@ -174,7 +175,7 @@ Toute combinaison `Alt` est absorbée. Les touches `Ctrl` non listées explicite
 | `Tab` | Favoris (si visibles), sinon panneau gauche |
 | `Shift + Tab` | Panneau gauche |
 | `F8` / `Ctrl + T` | Basculer en double panneau local |
-| `Ctrl + X` | Quitter Hollow (avec confirmation) |
+| `Esc` / `Ctrl + X` | Quitter Hollow (avec confirmation) |
 | Flèches | Défilement |
 
 ### 3.4 Éditeur
@@ -381,7 +382,7 @@ Il faut distinguer deux concepts différents :
 - le **double panneau** est un **mode d'affichage** ; il active deux colonnes synchronisées pour comparer ou manipuler deux répertoires côte à côte ;
 - la **copie entre panneaux** est une **opération de fichier** ; elle duplique un élément d'un panneau vers l'autre.
 
-`toggleDualPaneMode()` (`F8` en mode simple, ou `Ctrl+T` partout) active un **double panneau local** : le panneau droit démarre sur le même dossier que le gauche. `Esc` (dans un panneau) le désactive et restaure le visualiseur. Cela ne copie aucun fichier ; cela change seulement la disposition de l'interface.
+`toggleDualPaneMode()` (`F8` en mode simple, ou `Ctrl+T` partout) active un **double panneau local** : le panneau droit démarre sur le même dossier que le gauche. `Ctrl+T` le désactive et restaure le visualiseur. Cela ne copie aucun fichier ; cela change seulement la disposition de l'interface.
 
 ### 6.5 Copie entre panneaux (`F8` / `Shift+F6`)
 
@@ -412,7 +413,9 @@ Hollow distingue clairement la **copie**, le **renommage** et la **suppression**
 - `Ctrl+U` colle dans le répertoire du panneau actif : en cas de nom existant, un suffixe `_copy`, `_copy2`, … est généré ; si le VFS source diffère du VFS cible, la copie croisée (`CopyRecursiveBetweenVFS`) est utilisée, sinon la copie native du VFS ;
 - `F8` / `Shift+F6` dans un double panneau lance une **copie** entre deux panneaux. L'élément est dupliqué dans le dossier de destination et reste présent dans le dossier source ;
 - `Ctrl+R` renomme l'élément sélectionné dans le panneau actif via `VFS.Rename` ; les noms vides, `.`/`..` et contenant un séparateur sont refusés ;
-- `F5` crée un lien symbolique via `VFS.Symlink` ; la cible est initialisée avec l'élément sélectionné et le nom du lien avec `<nom>.link` ;
+- `F5` modifie les permissions et propriétaires (`chmod`/`chown`, avec option récursive) ;
+- `F6` crée un lien symbolique via `VFS.Symlink` ; la cible est initialisée avec l'élément sélectionné et le nom du lien avec `<nom>.link` ;
+- `Ctrl+N` crée un nouveau fichier ou dossier ;
 - `Suppr` : confirmation, puis `Remove` et rafraîchissement du panneau.
 
 Le presse-papiers (`Ctrl+K` / `Ctrl+U`) est donc un mécanisme de **copie préparée puis collée**, tandis que `F8` correspond à une **copie directe entre panneaux**.

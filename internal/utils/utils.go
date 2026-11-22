@@ -15,33 +15,32 @@ const (
  F2     : Changer le critère de tri
  F3     : Connexion FTP / SFTP
  F4     : Extraire l'archive vers l'autre panneau
- F5     : Créer un lien symbolique (ln -s)
- F6     : Changer les permissions (Chmod)
- F7     : Créer un fichier ou un dossier
- F8     : Activer le double panneau ou copier vers l'autre panneau
- F9     : Afficher / masquer les fichiers cachés
+ F5     : Modifier les permissions et propriétaires (Chmod)
+ F6     : Créer un lien symbolique (ln -s)
+ F8     : Copier vers l'autre panneau (en double panneau)
 
  [yellow]Panneaux & Navigation[white]
  ---------------------------
- Tab         : Basculer entre panneau gauche et droit
+ Tab         : Changer de panneau ou passer au visualiseur
  Ctrl + T    : Activer / désactiver le double panneau local
  Entrée      : Ouvrir un fichier / Entrer dans un dossier
  Suppr       : Supprimer l'élément sélectionné
+ Esc/Ctrl+X  : Quitter Hollow
  
  [yellow]Explorateur & Fichiers[white]
  ----------------------
+ Ctrl + N    : Créer un fichier ou un dossier
  Ctrl + B    : Afficher / Masquer la barre latérale des favoris
- Ctrl + D    : Ajouter le dossier courant des favoris
+ Ctrl + D    : Ajouter ou retirer le dossier courant des favoris
  Ctrl + F    : Recherche Globale (Fuzzy Finder sur tout le disque)
- Ctrl + K/U  : Copier / Coller (mémorisation de chemin)
+ Ctrl + K/U  : Préparer puis coller une copie de l'élément sélectionné
  Ctrl + R    : Renommer le fichier ou dossier sélectionné
- Ctrl + X    : Quitter l'application
 
   [yellow]Tri & Affichage[white]
   -------------------------
   F2          : Changer le critère de tri (nom / taille / date)
   Ctrl + O    : Inverser le sens du tri (croissant / décroissant)
-	F9 / Ctrl+H : Afficher / masquer les fichiers cachés
+  Ctrl + H    : Afficher / masquer les fichiers cachés
 
   [yellow]Barre des Favoris (Active)[white]
   --------------------------

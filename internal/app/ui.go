@@ -110,7 +110,7 @@ func NewEditorApp(initialPath string) *EditorApp {
 		FavList:      tview.NewList(),
 		DualPaneMode: false,
 		SortAsc:      true,
-		ShowHidden:   false,
+		ShowHidden:   true,
 	}
 
 	e.loadFavorites()
@@ -143,7 +143,7 @@ func (e *EditorApp) toggleDualPaneMode() {
 		e.refreshPanel(e.RightPanel)
 		e.rebuildMainLayout()
 		e.updatePanelFocus()
-		e.updateStatusTemp("[green]Mode double panneau activé (F6: copier | Tab: basculer | Esc: fermer)")
+		e.updateStatusTemp("[green]Mode double panneau activé (F8: copier | Tab: basculer | Ctrl+T: fermer)")
 	} else {
 		e.ActivePanel = e.LeftPanel
 		e.rebuildMainLayout()

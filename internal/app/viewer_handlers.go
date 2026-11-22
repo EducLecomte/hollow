@@ -40,7 +40,7 @@ func (e *EditorApp) setupViewerHandlers() {
 			e.toggleDualPaneMode()
 			return nil
 		}
-		if key == tcell.KeyCtrlX {
+		if key == tcell.KeyCtrlX || key == tcell.KeyEscape {
 			e.showQuitConfirmation()
 			return nil
 		}

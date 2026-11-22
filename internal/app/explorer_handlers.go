@@ -15,8 +15,9 @@ func (e *EditorApp) setupExplorerHandlers() {
 // setupPanelHandlers configure les raccourcis spécifiques à chaque panneau.
 func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 	p.List.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		// Shift+F6 pour copier en sens inverse lorsque le double panneau est actif
-		if (event.Key() == tcell.KeyF6 && (event.Modifiers()&tcell.ModShift != 0)) || event.Key() == tcell.KeyF18 {
+		// Shift+F8 ou Shift+F6 pour copier en sens inverse lorsque le double panneau est actif
+		if ((event.Key() == tcell.KeyF8 || event.Key() == tcell.KeyF6) && (event.Modifiers()&tcell.ModShift != 0)) ||
+			event.Key() == tcell.KeyF20 || event.Key() == tcell.KeyF18 {
 			if e.IsDualPane() {
 				e.copySelectedBetweenPanels(true)
 				return nil
@@ -41,19 +42,20 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 				e.App.SetFocus(e.Viewer)
 			}
 			return nil
-		case tcell.KeyEscape:
-			if e.DualPaneMode {
-				e.toggleDualPaneMode()
-				return nil
-			}
+		case tcell.KeyEscape, tcell.KeyCtrlX:
+			e.showQuitConfirmation()
+			return nil
 		case tcell.KeyF2:
 			e.cycleSortKey()
 			return nil
 		case tcell.KeyF5:
-			e.showSymlinkDialog()
+			e.showChmodDialog()
 			return nil
 		case tcell.KeyF4:
 			e.extractSelectedArchive()
+			return nil
+		case tcell.KeyF6:
+			e.showSymlinkDialog()
 			return nil
 		case tcell.KeyF9:
 			e.toggleHiddenFiles()
@@ -68,9 +70,6 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 			return nil
 		case tcell.KeyCtrlO:
 			e.toggleSortDirection()
-			return nil
-		case tcell.KeyF6:
-			e.showChmodDialog()
 			return nil
 		case tcell.KeyCtrlT:
 			e.toggleDualPaneMode()
@@ -89,10 +88,7 @@ func (e *EditorApp) setupPanelHandlers(p *PanelState) {
 				e.updateStatusTemp("[red]Seuls les dossiers peuvent être mis en favoris")
 			}
 			return nil
-		case tcell.KeyCtrlX:
-			e.showQuitConfirmation()
-			return nil
-		case tcell.KeyF7:
+		case tcell.KeyCtrlN, tcell.KeyF7:
 			e.showNewElementDialog()
 			return nil
 		case tcell.KeyF8:

@@ -62,7 +62,7 @@ func TestRenderBindingsBarNarrowTerminal(t *testing.T) {
 			t.Errorf("raccourci prioritaire manquant %q dans %q", want, plain)
 		}
 	}
-	for _, absent := range []string{"F8: Double", "F9/Ctrl+H: Cachés", "Suppr: Effacer"} {
+	for _, absent := range []string{"Ctrl+T: Double", "Suppr: Effacer"} {
 		if strings.Contains(plain, absent) {
 			t.Errorf("raccourci secondaire présent alors qu'il devrait être coupé: %q dans %q", absent, plain)
 		}

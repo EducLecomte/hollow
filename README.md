@@ -86,22 +86,23 @@ hollow README.md
 | `F2` | Changer le critère de tri |
 | `F3` | Se connecter en FTP, FTPS ou SFTP |
 | `F4` | Extraire une archive vers l'autre panneau |
-| `F5` | Créer un lien symbolique (`ln -s`) |
-| `F6` | Modifier les permissions et propriétaires |
-| `F7` | Créer un fichier ou un dossier |
-| `F8` | Activer le double panneau ou copier l'élément sélectionné vers l'autre panneau |
-| `F9` / `Ctrl + H` | Afficher ou masquer les fichiers cachés |
+| `F5` | Modifier les permissions et propriétaires |
+| `F6` | Créer un lien symbolique (`ln -s`) |
+| `F8` | Copier l'élément sélectionné vers l'autre panneau (double panneau) |
 | `Tab` / `Shift + Tab` | Changer de panneau ou passer au visualiseur |
-| `Ctrl + B` | Afficher ou masquer les favoris |
-| `Ctrl + D` | Ajouter ou retirer le dossier courant des favoris |
+| `Ctrl + N` | Créer un fichier ou un dossier |
 | `Ctrl + F` | Rechercher dans l'arborescence |
 | `Ctrl + O` | Inverser le sens du tri |
+| `Ctrl + H` | Afficher ou masquer les fichiers cachés |
+| `Ctrl + B` | Afficher ou masquer les favoris |
+| `Ctrl + D` | Ajouter ou retirer le dossier courant des favoris |
 | `Ctrl + T` | Activer ou désactiver le double panneau local |
 | `Ctrl + K` / `Ctrl + U` | Préparer puis coller une copie de l'élément sélectionné |
 | `Ctrl + R` | Renommer le fichier ou dossier sélectionné |
 | `Entrée` | Ouvrir un fichier, dossier ou archive |
 | `Suppr` | Supprimer l'élément sélectionné |
-| `Ctrl + X` | Quitter Hollow |
+| `Esc` / `Ctrl + X` | Quitter Hollow |
+
 
 <img src="ressources/gophers/gopher_work.png" alt="Gopher au travail" align="left" width="200">
 

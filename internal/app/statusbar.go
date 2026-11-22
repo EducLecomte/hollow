@@ -34,13 +34,9 @@ func statusBarItems(mode string) []statusBarItem {
 			{"F1", "Aide"},
 			{"F2", "Tri"},
 			{"F4", "Extraire"},
-			{"F5", "Lien"},
-			{"F6", "Droits"},
-			{"F7", "Créer"},
+			{"F5", "Droits"},
+			{"F6", "Lien"},
 			{"F8", "Copier"},
-			{"F9", "Cachés"},
-			{"Tab", "Panneau"},
-			{"Suppr", "Effacer"},
 			{"Esc", "Quitter"},
 		}
 	case statusModeArchive:
@@ -63,7 +59,7 @@ func statusBarItems(mode string) []statusBarItem {
 		return []statusBarItem{
 			{"F1", "Aide"},
 			{"Tab", "Retour"},
-			{"Ctrl+X", "Quitter"},
+			{"Esc", "Quitter"},
 			{"Flèches", "Défiler"},
 		}
 	default: // statusModeDefault
@@ -72,13 +68,9 @@ func statusBarItems(mode string) []statusBarItem {
 			{"F2", "Tri"},
 			{"F3", "FTP"},
 			{"F4", "Extraire"},
-			{"F5", "Lien"},
-			{"F6", "Droits"},
-			{"F7", "Créer"},
-			{"F8", "Double"},
-			{"F9", "Cachés"},
-			{"Tab", "Aperçu"},
-			{"Suppr", "Effacer"},
+			{"F5", "Droits"},
+			{"F6", "Lien"},
+			{"Esc", "Quitter"},
 		}
 	}
 }
